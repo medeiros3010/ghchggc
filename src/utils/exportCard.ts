@@ -1,0 +1,976 @@
+import {
+  CardArtConfig,
+  CardDimensionsConfig,
+  CardFrameConfig,
+  CardSymbolsConfig,
+  TextBoxConfig,
+} from '../types/card';
+import {
+  SorceryIndicatorsConfig,
+  computeThresholdDistribution,
+  getCombatMode,
+  DEFAULT_ATTACK_STYLE,
+  DEFAULT_DEFENSE_STYLE,
+  SORCERY_ELEMENTS,
+  getThresholdElementImagePath,
+} from '../types/sorcery';
+import { ensureAllFontsLoaded, getCanvasFontSpec, AVAILABLE_FONTS } from './fontHelper';
+import { calculateAutoFitFontSize } from './textFit';
+import { hasCombatAttributes } from '../types/cardType';
+import {
+  CardAttributeId,
+  getAllowedThresholdElements,
+  findAttributeByFrameUrl,
+} from '../types/cardAttribute';
+
+/**
+ * Utilitário para renderizar e exportar a carta em formato PNG de alta resolução
+ * através da API HTML5 Canvas, mantendo a proporção exata de 63mm x 88mm (ou o preset ativo).
+ */
+export async function exportCardToPng(
+  dimensions: CardDimensionsConfig,
+  artConfig: CardArtConfig,
+  frameConfig: CardFrameConfig,
+  textBoxes: TextBoxConfig[],
+  symbolsConfig?: CardSymbolsConfig,
+  fileName = 'carta-wireframe.png',
+  sorceryConfig?: SorceryIndicatorsConfig,
+  cardType?: import('../types/cardType').CardTypeId | null,
+  selectedAttribute?: CardAttributeId
+): Promise<void> {
+  // Aguarda o carregamento e rasterização completa de todas as fontes antes de renderizar
+  await ensureAllFontsLoaded();
+
+  // Resolução de exportação de alta fidelidade (~308 DPI):
+  // Proporção física oficial de Sorcery:
+  // Vertical (63mm × 88mm): 800 × 1117 pixels (proporção exata 63/88)
+  // Horizontal Site (88mm × 63mm): 1117 × 800 pixels (proporção exata 88/63)
+  const isLandscape = dimensions.widthMm > dimensions.heightMm;
+  const targetWidth = isLandscape ? 1117 : 800;
+  const targetHeight = isLandscape ? 800 : Math.round(800 / dimensions.aspectRatio);
+
+  const previewWidth = isLandscape ? 503 : 360;
+  const previewHeight = isLandscape ? 360 : Math.round(360 / dimensions.aspectRatio);
+  const scale = targetWidth / previewWidth;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  // Recorte arredondado proporcional e limpo nos 4 cantos externos da carta (TCG Die-cut)
+  // Mantém os cantos externos transparentes no arquivo PNG, sem bordas brancas ou fundos artificiais
+  const cornerRadius = (dimensions.borderRadiusPx || 18) * scale;
+  ctx.save();
+  roundRect(ctx, 0, 0, targetWidth, targetHeight, cornerRadius);
+  ctx.clip();
+
+  // 1. Fundo da Carta (Wireframe limpo no interior do recorte arredondado)
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, targetWidth, targetHeight);
+
+  // 2. Renderizar Imagem de Arte (Camada Inferior)
+  if (artConfig.imageUrl) {
+    try {
+      const img = await loadImage(artConfig.imageUrl);
+      ctx.save();
+      ctx.globalAlpha = artConfig.opacity;
+
+      if (artConfig.mode === 'full-bleed') {
+        // Modo Sangria Total / Full Bleed
+        drawCoverImage(ctx, img, 0, 0, targetWidth, targetHeight, artConfig.fit);
+      } else {
+        // Modo Moldura Designada de Arte
+        const frameX = (artConfig.frameMarginPercent / 100) * targetWidth;
+        const frameY = (artConfig.frameTopPercent / 100) * targetHeight;
+        const frameW = ((100 - artConfig.frameMarginPercent * 2) / 100) * targetWidth;
+        const frameH = (artConfig.frameHeightPercent / 100) * targetHeight;
+
+        // Clip no retângulo da moldura
+        ctx.beginPath();
+        ctx.rect(frameX, frameY, frameW, frameH);
+        ctx.clip();
+        drawCoverImage(ctx, img, frameX, frameY, frameW, frameH, artConfig.fit);
+        ctx.restore();
+
+        // Moldura wireframe ao redor da arte
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(frameX, frameY, frameW, frameH);
+      }
+      ctx.restore();
+    } catch {
+      // Caso a imagem de arte falhe ao carregar
+    }
+  } else if (artConfig.mode === 'framed') {
+    // Espaço reservado para a arte (wireframe)
+    const frameX = (artConfig.frameMarginPercent / 100) * targetWidth;
+    const frameY = (artConfig.frameTopPercent / 100) * targetHeight;
+    const frameW = ((100 - artConfig.frameMarginPercent * 2) / 100) * targetWidth;
+    const frameH = (artConfig.frameHeightPercent / 100) * targetHeight;
+
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(frameX, frameY, frameW, frameH);
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 6]);
+    ctx.strokeRect(frameX, frameY, frameW, frameH);
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Área Designada para Arte Frontal', frameX + frameW / 2, frameY + frameH / 2);
+  }
+
+  // 3. Renderizar CARDFRAME (Camada Intermediária - Fica por cima da arte e abaixo dos textos)
+  if (frameConfig?.imageUrl && frameConfig.isVisible) {
+    try {
+      const frameImg = await loadImage(frameConfig.imageUrl);
+      ctx.save();
+      ctx.globalAlpha = frameConfig.opacity;
+      if (frameConfig.fit === 'fill') {
+        ctx.drawImage(frameImg, 0, 0, targetWidth, targetHeight);
+      } else {
+        drawCoverImage(ctx, frameImg, 0, 0, targetWidth, targetHeight, frameConfig.fit);
+      }
+      ctx.restore();
+    } catch {
+      // Caso a imagem do cardframe falhe
+    }
+  }
+
+  // 4A. Renderizar Indicador Fixo de Mana Sorcery (Site não possui custo de Mana)
+  if (cardType !== 'site' && sorceryConfig?.mana && sorceryConfig.mana.isVisible) {
+    try {
+      const manaImg = await loadImage(sorceryConfig.mana.imageUrl || '/assets/sorcery/mana.png?v=2');
+      const manaScale = sorceryConfig.mana.scale || 1.0;
+      const baseMx = (sorceryConfig.mana.xPercent / 100) * targetWidth;
+      const baseMy = (sorceryConfig.mana.yPercent / 100) * targetHeight;
+      const baseMw = (sorceryConfig.mana.widthPercent / 100) * targetWidth;
+      const baseMh = (sorceryConfig.mana.heightPercent / 100) * targetHeight;
+
+      // Transformação proporcional com ponto de ancoragem no centro (transform-origin: center center)
+      const centerX = baseMx + baseMw / 2;
+      const centerY = baseMy + baseMh / 2;
+      const scaledMw = baseMw * manaScale;
+      const scaledMh = baseMh * manaScale;
+      const scaledMx = centerX - scaledMw / 2;
+      const scaledMy = centerY - scaledMh / 2;
+
+      ctx.save();
+      ctx.globalAlpha = sorceryConfig.mana.opacity;
+      if (sorceryConfig.mana.keepAspectRatio) {
+        drawCoverImage(ctx, manaImg, scaledMx, scaledMy, scaledMw, scaledMh, 'contain');
+      } else {
+        ctx.drawImage(manaImg, scaledMx, scaledMy, scaledMw, scaledMh);
+      }
+
+      // Desenhar o número de Mana centralizado sobre a esfera
+      const numStr = String(sorceryConfig.mana.quantity);
+      const fontSize = Math.max(8, Math.round((sorceryConfig.mana.fontSizePx || 20) * scale * manaScale));
+      const fontDef = AVAILABLE_FONTS.find((f) => f.id === sorceryConfig.mana.fontFamily);
+      const cssFontFamily = fontDef ? fontDef.cssFamily : "'Morpheus', Georgia, serif";
+      ctx.font = `bold ${fontSize}px ${cssFontFamily}`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+      const textX = centerX + (sorceryConfig.mana.textOffsetX || 0) * scale * manaScale;
+      const textY = centerY + (sorceryConfig.mana.textOffsetY || 0) * scale * manaScale;
+
+      // Alinhamento vertical fiel ao layout CSS (line-height: 1 centralizado verticalmente)
+      const manaMetrics = ctx.measureText(numStr);
+      const manaAscent = manaMetrics.fontBoundingBoxAscent ?? manaMetrics.actualBoundingBoxAscent;
+      const manaDescent = manaMetrics.fontBoundingBoxDescent ?? manaMetrics.actualBoundingBoxDescent;
+      const manaBaselineY = textY + (manaAscent - manaDescent) / 2;
+
+      // Contorno opcional: SOMENTE se explicitamente ativado com espessura > 0
+      if (sorceryConfig.mana.strokeWidthPx && sorceryConfig.mana.strokeWidthPx > 0) {
+        ctx.strokeStyle = sorceryConfig.mana.strokeColor || '#000000';
+        ctx.lineWidth = sorceryConfig.mana.strokeWidthPx * scale * manaScale;
+        ctx.lineJoin = 'round';
+        ctx.strokeText(numStr, textX, manaBaselineY);
+      }
+
+      // Preenchimento com a cor selecionada (sem contorno preto forçado)
+      ctx.fillStyle = sorceryConfig.mana.fontColor || '#ffffff';
+      ctx.fillText(numStr, textX, manaBaselineY);
+      ctx.restore();
+    } catch (e) {
+      console.warn('Erro ao desenhar mana no canvas de exportação:', e);
+    }
+  }
+
+  // 4B. Renderizar Thresholds (Afinidades Elementais ao lado da Mana - se ativado e compatível com o atributo)
+  const effectiveAttribute =
+    selectedAttribute ||
+    (frameConfig?.imageUrl ? findAttributeByFrameUrl(frameConfig.imageUrl)?.id : undefined);
+  const allowedThresholdElements = getAllowedThresholdElements(effectiveAttribute);
+
+  if (
+    allowedThresholdElements.length > 0 &&
+    sorceryConfig?.threshold &&
+    sorceryConfig.threshold.isVisible
+  ) {
+    const dist = computeThresholdDistribution(
+      sorceryConfig.threshold,
+      sorceryConfig.mana,
+      allowedThresholdElements,
+      cardType
+    );
+
+    if (cardType === 'site') {
+      const symScale = sorceryConfig.threshold.scale || 1.0;
+      const symWidthPercent = sorceryConfig.threshold.symbolWidthPercent * symScale;
+      const symHeightPercent = sorceryConfig.threshold.symbolHeightPercent * symScale;
+      const gapXPercent = (sorceryConfig.threshold.gapXPercent / 100) * symWidthPercent;
+      const iw = (symWidthPercent / 100) * targetWidth;
+      const ih = (symHeightPercent / 100) * targetHeight;
+      const iy = (sorceryConfig.threshold.yPercent / 100) * targetHeight;
+
+      for (let idx = 0; idx < dist.items.length; idx++) {
+        const item = dist.items[idx];
+        try {
+          const itemImgSrc = getThresholdElementImagePath(
+            item.element,
+            sorceryConfig.threshold.elementImages
+          );
+          const itemImg = await loadImage(itemImgSrc);
+          const ix =
+            ((sorceryConfig.threshold.xPercent + idx * (symWidthPercent + gapXPercent)) / 100) *
+            targetWidth;
+
+          ctx.save();
+          ctx.globalAlpha = sorceryConfig.threshold.opacity ?? 1.0;
+          drawCoverImage(ctx, itemImg, ix, iy, iw, ih, 'contain');
+          ctx.restore();
+        } catch {
+          // Ignora falha de símbolo elemental isolado
+        }
+      }
+    } else {
+      // Demais tipos (Minion, etc.): comportamento original mantido 100% intacto
+      for (const item of dist.items) {
+        try {
+          const itemImgSrc = getThresholdElementImagePath(
+            item.element,
+            sorceryConfig.threshold.elementImages
+          );
+          const itemImg = await loadImage(itemImgSrc);
+          const ix = (item.xPercent / 100) * targetWidth;
+          const iy = (item.yPercent / 100) * targetHeight;
+          const symScale = sorceryConfig.threshold.scale || 1.0;
+          const iw =
+            ((sorceryConfig.threshold.symbolWidthPercent * symScale) / 100) *
+            targetWidth;
+          const ih =
+            ((sorceryConfig.threshold.symbolHeightPercent * symScale) / 100) *
+            targetHeight;
+
+          ctx.save();
+          ctx.globalAlpha = sorceryConfig.threshold.opacity;
+          drawCoverImage(ctx, itemImg, ix, iy, iw, ih, 'contain');
+          ctx.restore();
+        } catch {
+          // Ignora falha de símbolo elemental isolado
+        }
+      }
+    }
+  }
+
+  // 4C. Renderizar Indicador de Combate Sorcery (Bloco A e Bloco B mutuamente exclusivos)
+  if (
+    hasCombatAttributes(cardType) &&
+    sorceryConfig?.combat &&
+    sorceryConfig.combat.isVisible &&
+    (cardType !== 'site' || sorceryConfig.combat.siteCombatOption !== 'none')
+  ) {
+    const combat = sorceryConfig.combat;
+    const isSingle =
+      cardType === 'site'
+        ? combat.siteCombatOption === 'attack-only'
+        : combat.selectedType === 'attack-only';
+
+    if (isSingle) {
+      const single = combat.single;
+      if (single && single.value !== undefined && single.value !== null && String(single.value).trim() !== '') {
+        try {
+          const singleScale = single.scale || 1.0;
+          const baseCx = (single.xPercent / 100) * targetWidth;
+          const baseCy = (single.yPercent / 100) * targetHeight;
+          const baseCw = (single.widthPercent / 100) * targetWidth;
+          const baseCh = (single.heightPercent / 100) * targetHeight;
+
+          // Centralização com transformOrigin: center center
+          const centerX = baseCx + baseCw / 2;
+          const centerY = baseCy + baseCh / 2;
+          const cw = baseCw * singleScale;
+          const ch = baseCh * singleScale;
+          const cx = centerX - cw / 2;
+          const cy = centerY - ch / 2;
+
+          ctx.save();
+          ctx.globalAlpha = single.opacity !== undefined ? single.opacity : 1.0;
+
+          // Imagem de fundo específica do Bloco A
+          if (single.imageUrl) {
+            const singleImg = await loadImage(single.imageUrl);
+            if (single.keepAspectRatio) {
+              drawCoverImage(ctx, singleImg, cx, cy, cw, ch, 'contain');
+            } else {
+              ctx.drawImage(singleImg, cx, cy, cw, ch);
+            }
+          }
+
+          const atkAnchorX = single.attackXPercent ?? (single.numberAnchor?.xPercent ?? 50.0);
+          const atkAnchorY = single.attackYPercent ?? (single.numberAnchor?.yPercent ?? 50.0);
+          const atkStyle = single.style || DEFAULT_ATTACK_STYLE;
+
+          // Imagem/ícone opcional de ataque
+          if (single.attackImageUrl) {
+            const iconImg = await loadImage(single.attackImageUrl);
+            const iconX = cx + cw * (atkAnchorX / 100) + (atkStyle.offsetX || 0) * scale * singleScale;
+            const iconY = cy + ch * (atkAnchorY / 100) + (atkStyle.offsetY || 0) * scale * singleScale;
+            drawCoverImage(ctx, iconImg, iconX - cw * 0.25, iconY - ch * 0.25, cw * 0.5, ch * 0.5, 'contain');
+          }
+
+          // Número de Ataque
+          const textX = cx + cw * (atkAnchorX / 100) + (atkStyle.offsetX || 0) * scale * singleScale;
+          const textY = cy + ch * (atkAnchorY / 100) + (atkStyle.offsetY || 0) * scale * singleScale;
+
+          const fontDef = AVAILABLE_FONTS.find((f) => f.id === atkStyle.fontFamily);
+          const cssFontFamily = fontDef ? fontDef.cssFamily : "'Morpheus', Georgia, serif";
+          const fontSize = Math.max(10, Math.round((atkStyle.fontSizePx || 22) * scale * singleScale));
+
+          ctx.font = `${atkStyle.fontStyle || 'normal'} ${atkStyle.fontWeight || 'bold'} ${fontSize}px ${cssFontFamily}`;
+          ctx.textAlign = (atkStyle.textAlign as CanvasTextAlign) || 'center';
+          ctx.textBaseline = 'alphabetic';
+
+          // Alinhamento vertical fiel ao layout CSS (translate(-50%, -50%) com line-height: 1)
+          const singleMetrics = ctx.measureText(String(single.value));
+          const singleAscent = singleMetrics.fontBoundingBoxAscent ?? singleMetrics.actualBoundingBoxAscent;
+          const singleDescent = singleMetrics.fontBoundingBoxDescent ?? singleMetrics.actualBoundingBoxDescent;
+          const singleBaselineY = textY + (singleAscent - singleDescent) / 2;
+
+          if (atkStyle.strokeWidthPx && atkStyle.strokeWidthPx > 0) {
+            ctx.strokeStyle = atkStyle.strokeColor || '#000000';
+            ctx.lineWidth = atkStyle.strokeWidthPx * scale * singleScale;
+            ctx.strokeText(String(single.value), textX, singleBaselineY);
+          }
+          ctx.fillStyle = atkStyle.fontColor || '#ffffff';
+          ctx.fillText(String(single.value), textX, singleBaselineY);
+
+          ctx.restore();
+        } catch (e) {
+          console.warn('Erro ao desenhar criatura com ataque no export:', e);
+        }
+      }
+    } else {
+      // Bloco B: Criatura com Ataque e Defesa
+      const dual = combat.dual;
+      const hasAtk = dual?.attackValue !== undefined && dual?.attackValue !== null && String(dual.attackValue).trim() !== '';
+      const hasDef = dual?.defenseValue !== undefined && dual?.defenseValue !== null && String(dual.defenseValue).trim() !== '';
+
+      if (dual && (hasAtk || hasDef)) {
+        try {
+          const dualScale = dual.scale || 1.0;
+          const baseCx = (dual.xPercent / 100) * targetWidth;
+          const baseCy = (dual.yPercent / 100) * targetHeight;
+          const baseCw = (dual.widthPercent / 100) * targetWidth;
+          const baseCh = (dual.heightPercent / 100) * targetHeight;
+
+          // Centralização com transformOrigin: center center
+          const centerX = baseCx + baseCw / 2;
+          const centerY = baseCy + baseCh / 2;
+          const cw = baseCw * dualScale;
+          const ch = baseCh * dualScale;
+          const cx = centerX - cw / 2;
+          const cy = centerY - ch / 2;
+
+          ctx.save();
+          ctx.globalAlpha = dual.opacity !== undefined ? dual.opacity : 1.0;
+
+          // Imagem de fundo específica do Bloco B
+          if (dual.backgroundImageUrl) {
+            const dualImg = await loadImage(dual.backgroundImageUrl);
+            if (dual.keepAspectRatio) {
+              drawCoverImage(ctx, dualImg, cx, cy, cw, ch, 'contain');
+            } else {
+              ctx.drawImage(dualImg, cx, cy, cw, ch);
+            }
+          }
+
+          // Elemento 1: Ataque (Posicionamento independente)
+          if (hasAtk) {
+            const atkAnchorX = dual.attackXPercent ?? (dual.attackNumberAnchor?.xPercent ?? 35.5);
+            const atkAnchorY = dual.attackYPercent ?? (dual.attackNumberAnchor?.yPercent ?? 46.5);
+            const atkStyle = dual.attackStyle || DEFAULT_ATTACK_STYLE;
+
+            if (dual.attackImageUrl) {
+              const atkIcon = await loadImage(dual.attackImageUrl);
+              const iconX = cx + cw * (atkAnchorX / 100) + (atkStyle.offsetX || 0) * scale * dualScale;
+              const iconY = cy + ch * (atkAnchorY / 100) + (atkStyle.offsetY || 0) * scale * dualScale;
+              drawCoverImage(ctx, atkIcon, iconX - cw * 0.2, iconY - ch * 0.2, cw * 0.4, ch * 0.4, 'contain');
+            }
+
+            const atkX = cx + cw * (atkAnchorX / 100) + (atkStyle.offsetX || 0) * scale * dualScale;
+            const atkY = cy + ch * (atkAnchorY / 100) + (atkStyle.offsetY || 0) * scale * dualScale;
+
+            const atkFontDef = AVAILABLE_FONTS.find((f) => f.id === atkStyle.fontFamily);
+            const atkCssFont = atkFontDef ? atkFontDef.cssFamily : "'Morpheus', Georgia, serif";
+            const atkFontSize = Math.max(10, Math.round((atkStyle.fontSizePx || 22) * scale * dualScale));
+
+            ctx.font = `${atkStyle.fontStyle || 'normal'} ${atkStyle.fontWeight || 'bold'} ${atkFontSize}px ${atkCssFont}`;
+            ctx.textAlign = (atkStyle.textAlign as CanvasTextAlign) || 'center';
+            ctx.textBaseline = 'alphabetic';
+
+            // Alinhamento vertical fiel ao layout CSS (translate(-50%, -50%) com line-height: 1)
+            const atkMetrics = ctx.measureText(String(dual.attackValue));
+            const atkAscent = atkMetrics.fontBoundingBoxAscent ?? atkMetrics.actualBoundingBoxAscent;
+            const atkDescent = atkMetrics.fontBoundingBoxDescent ?? atkMetrics.actualBoundingBoxDescent;
+            const atkBaselineY = atkY + (atkAscent - atkDescent) / 2;
+
+            if (atkStyle.strokeWidthPx && atkStyle.strokeWidthPx > 0) {
+              ctx.strokeStyle = atkStyle.strokeColor || '#000000';
+              ctx.lineWidth = atkStyle.strokeWidthPx * scale * dualScale;
+              ctx.strokeText(String(dual.attackValue), atkX, atkBaselineY);
+            }
+            ctx.fillStyle = atkStyle.fontColor || '#ffffff';
+            ctx.fillText(String(dual.attackValue), atkX, atkBaselineY);
+          }
+
+          // Elemento 2: Defesa (Posicionamento totalmente independente)
+          if (hasDef) {
+            const defAnchorX = dual.defenseXPercent ?? (dual.defenseNumberAnchor?.xPercent ?? 65.0);
+            const defAnchorY = dual.defenseYPercent ?? (dual.defenseNumberAnchor?.yPercent ?? 48.0);
+            const defStyle = dual.defenseStyle || DEFAULT_DEFENSE_STYLE;
+
+            if (dual.defenseImageUrl) {
+              const defIcon = await loadImage(dual.defenseImageUrl);
+              const iconX = cx + cw * (defAnchorX / 100) + (defStyle.offsetX || 0) * scale * dualScale;
+              const iconY = cy + ch * (defAnchorY / 100) + (defStyle.offsetY || 0) * scale * dualScale;
+              drawCoverImage(ctx, defIcon, iconX - cw * 0.2, iconY - ch * 0.2, cw * 0.4, ch * 0.4, 'contain');
+            }
+
+            const defX = cx + cw * (defAnchorX / 100) + (defStyle.offsetX || 0) * scale * dualScale;
+            const defY = cy + ch * (defAnchorY / 100) + (defStyle.offsetY || 0) * scale * dualScale;
+
+            const defFontDef = AVAILABLE_FONTS.find((f) => f.id === defStyle.fontFamily);
+            const defCssFont = defFontDef ? defFontDef.cssFamily : "'Morpheus', Georgia, serif";
+            const defFontSize = Math.max(10, Math.round((defStyle.fontSizePx || 22) * scale * dualScale));
+
+            ctx.font = `${defStyle.fontStyle || 'normal'} ${defStyle.fontWeight || 'bold'} ${defFontSize}px ${defCssFont}`;
+            ctx.textAlign = (defStyle.textAlign as CanvasTextAlign) || 'center';
+            ctx.textBaseline = 'alphabetic';
+
+            // Alinhamento vertical fiel ao layout CSS (translate(-50%, -50%) com line-height: 1)
+            const defMetrics = ctx.measureText(String(dual.defenseValue));
+            const defAscent = defMetrics.fontBoundingBoxAscent ?? defMetrics.actualBoundingBoxAscent;
+            const defDescent = defMetrics.fontBoundingBoxDescent ?? defMetrics.actualBoundingBoxDescent;
+            const defBaselineY = defY + (defAscent - defDescent) / 2;
+
+            if (defStyle.strokeWidthPx && defStyle.strokeWidthPx > 0) {
+              ctx.strokeStyle = defStyle.strokeColor || '#000000';
+              ctx.lineWidth = defStyle.strokeWidthPx * scale * dualScale;
+              ctx.strokeText(String(dual.defenseValue), defX, defBaselineY);
+            }
+            ctx.fillStyle = defStyle.fontColor || '#ffffff';
+            ctx.fillText(String(dual.defenseValue), defX, defBaselineY);
+          }
+
+          ctx.restore();
+        } catch (e) {
+          console.warn('Erro ao desenhar criatura com ataque e defesa no export:', e);
+        }
+      }
+    }
+  }
+
+  // 5A. Renderizar Título Composto Exclusivo para o Tipo Site (Nome + ' - ' + Tipo/Subtipo)
+  if (cardType === 'site') {
+    const titleBox = textBoxes.find((b) => b.role === 'title') || textBoxes.find((b) => b.id === 'box-title');
+    const typeBox = textBoxes.find((b) => b.role === 'type') || textBoxes.find((b) => b.id === 'box-type');
+
+    if (titleBox && titleBox.isVisible) {
+      const x = (titleBox.xPercent / 100) * targetWidth;
+      const y = (titleBox.yPercent / 100) * targetHeight;
+      const w = (titleBox.widthPercent / 100) * targetWidth;
+      const h = titleBox.heightPercent ? (titleBox.heightPercent / 100) * targetHeight : 40 * scale;
+
+      // Fundo da caixa
+      if (titleBox.bgColor && titleBox.bgColor !== 'transparent') {
+        ctx.fillStyle = titleBox.bgColor;
+        roundRect(ctx, x, y, w, h, (titleBox.borderRadiusPx || 0) * scale);
+        ctx.fill();
+      }
+
+      // Borda da caixa
+      if (titleBox.borderWidthPx > 0 && titleBox.borderColor && titleBox.borderColor !== 'transparent') {
+        ctx.strokeStyle = titleBox.borderColor;
+        ctx.lineWidth = titleBox.borderWidthPx * scale;
+        roundRect(ctx, x, y, w, h, (titleBox.borderRadiusPx || 0) * scale);
+        ctx.stroke();
+      }
+
+      const rawTitle = titleBox.content || '';
+      const rawType = typeBox?.content || '';
+      const hasTitle = rawTitle.trim().length > 0;
+      const hasType = rawType.trim().length > 0;
+      const hasSeparator = hasTitle && hasType;
+      const sepStr = ' - ';
+
+      if (hasTitle || hasType) {
+        // Tipografia do Nome (Segmento 1)
+        const titleFit = calculateAutoFitFontSize(titleBox, previewWidth, previewHeight);
+        const titleFontSize = titleFit.effectiveFontSizePx;
+        const computedTitleFontSize = Math.max(4, Math.round(titleFontSize * scale));
+        const titleFontSpec = getCanvasFontSpec(titleBox, computedTitleFontSize);
+        const titleColor = titleBox.textColor || '#ffffff';
+        const hasTitleStroke = Boolean(titleBox.textStrokeEnabled && (titleBox.textStrokeWidthPx ?? 0) > 0);
+        const titleStrokeWidth = (titleBox.textStrokeWidthPx || 0) * scale;
+        const titleStrokeColor = titleBox.textStrokeColor || '#000000';
+
+        // Tipografia do Tipo / Subtipo (Segmento 2 e Separador)
+        const typeBaseFontSize = typeBox?.fontSizePx || Math.max(8, Math.round(titleFontSize * 0.75));
+        const computedTypeFontSize = Math.max(4, Math.round(typeBaseFontSize * scale));
+        const typeFontSpec = typeBox ? getCanvasFontSpec(typeBox, computedTypeFontSize) : titleFontSpec;
+        const typeColor = typeBox?.textColor || titleColor;
+        const hasTypeStroke = Boolean(typeBox?.textStrokeEnabled && (typeBox.textStrokeWidthPx ?? 0) > 0);
+        const typeStrokeWidth = (typeBox?.textStrokeWidthPx || 0) * scale;
+        const typeStrokeColor = typeBox?.textStrokeColor || '#000000';
+
+        const padX = (titleBox.paddingXPx !== undefined ? titleBox.paddingXPx : (titleBox.paddingPx ?? 0)) * scale;
+        const padY = (titleBox.paddingYPx !== undefined ? titleBox.paddingYPx : (titleBox.paddingPx ?? 0)) * scale;
+        const availableWidth = Math.max(1, w - padX * 2);
+
+        ctx.save();
+
+        // Medição dos segmentos com precisão
+        ctx.font = titleFontSpec;
+        if ('letterSpacing' in ctx) {
+          const ls = (titleBox.letterSpacingPx || 0) * scale;
+          (ctx as unknown as { letterSpacing: string }).letterSpacing = `${ls}px`;
+        }
+        const titleWidth = hasTitle ? ctx.measureText(rawTitle).width : 0;
+
+        ctx.font = typeFontSpec;
+        if ('letterSpacing' in ctx) {
+          (ctx as unknown as { letterSpacing: string }).letterSpacing = '0px';
+        }
+        const sepWidth = hasSeparator ? ctx.measureText(sepStr).width : 0;
+
+        if ('letterSpacing' in ctx) {
+          const ls = (typeBox?.letterSpacingPx || 0) * scale;
+          (ctx as unknown as { letterSpacing: string }).letterSpacing = `${ls}px`;
+        }
+        const typeWidth = hasType ? ctx.measureText(rawType).width : 0;
+
+        const totalWidth = titleWidth + sepWidth + typeWidth;
+
+        // Alinhamento horizontal da linha única composta
+        const alignment = titleBox.textAlign || 'center';
+        let lineX = x + padX;
+        if (alignment === 'center') {
+          lineX = x + padX + Math.max(0, (availableWidth - totalWidth) / 2);
+        } else if (alignment === 'right') {
+          lineX = x + w - padX - totalWidth;
+        }
+
+        // Alinhamento vertical e cálculo da linha de base tipográfica contínua
+        const effectiveLineHeight = titleBox.lineHeight !== undefined ? titleBox.lineHeight : 1.25;
+        const halfLeading = ((effectiveLineHeight - 1) * computedTitleFontSize) / 2;
+        const topY = y + padY + halfLeading;
+
+        ctx.font = titleFontSpec;
+        const titleMetrics = ctx.measureText(rawTitle || 'M');
+        const titleAscent =
+          titleMetrics.fontBoundingBoxAscent ??
+          titleMetrics.actualBoundingBoxAscent ??
+          computedTitleFontSize * 0.8;
+        const baselineY = topY + titleAscent;
+
+        ctx.textBaseline = 'alphabetic';
+        ctx.textAlign = 'left';
+
+        let curX = lineX;
+
+        // 1. Renderiza o Nome da Carta
+        if (hasTitle) {
+          ctx.font = titleFontSpec;
+          if ('letterSpacing' in ctx) {
+            const ls = (titleBox.letterSpacingPx || 0) * scale;
+            (ctx as unknown as { letterSpacing: string }).letterSpacing = `${ls}px`;
+          }
+          if (hasTitleStroke && titleStrokeWidth > 0) {
+            ctx.save();
+            ctx.strokeStyle = titleStrokeColor;
+            ctx.lineWidth = titleStrokeWidth * 2;
+            ctx.lineJoin = 'round';
+            ctx.miterLimit = 2;
+            ctx.strokeText(rawTitle, curX, baselineY);
+            ctx.restore();
+          }
+          ctx.fillStyle = titleColor;
+          ctx.fillText(rawTitle, curX, baselineY);
+          curX += titleWidth;
+        }
+
+        // 2. Renderiza o Separador Automático " - "
+        if (hasSeparator) {
+          ctx.font = typeFontSpec;
+          if ('letterSpacing' in ctx) {
+            (ctx as unknown as { letterSpacing: string }).letterSpacing = '0px';
+          }
+          if (hasTypeStroke && typeStrokeWidth > 0) {
+            ctx.save();
+            ctx.strokeStyle = typeStrokeColor;
+            ctx.lineWidth = typeStrokeWidth * 2;
+            ctx.lineJoin = 'round';
+            ctx.miterLimit = 2;
+            ctx.strokeText(sepStr, curX, baselineY);
+            ctx.restore();
+          }
+          ctx.fillStyle = typeColor;
+          ctx.fillText(sepStr, curX, baselineY);
+          curX += sepWidth;
+        }
+
+        // 3. Renderiza o Tipo e Subtipo
+        if (hasType) {
+          ctx.font = typeFontSpec;
+          if ('letterSpacing' in ctx) {
+            const ls = (typeBox?.letterSpacingPx || 0) * scale;
+            (ctx as unknown as { letterSpacing: string }).letterSpacing = `${ls}px`;
+          }
+          if (hasTypeStroke && typeStrokeWidth > 0) {
+            ctx.save();
+            ctx.strokeStyle = typeStrokeColor;
+            ctx.lineWidth = typeStrokeWidth * 2;
+            ctx.lineJoin = 'round';
+            ctx.miterLimit = 2;
+            ctx.strokeText(rawType, curX, baselineY);
+            ctx.restore();
+          }
+          ctx.fillStyle = typeColor;
+          ctx.fillText(rawType, curX, baselineY);
+        }
+
+        // Reset de espaçamento
+        if ('letterSpacing' in ctx) {
+          (ctx as unknown as { letterSpacing: string }).letterSpacing = '0px';
+        }
+
+        ctx.restore();
+      }
+    }
+  }
+
+  // 6. Renderizar Caixas de Texto com Espaçamentos Avançados
+  for (const box of textBoxes) {
+    if (!box.isVisible) continue;
+    // No tipo Site, o título e tipo/subtipo são gerenciados exclusivamente pelo SiteCompositeTitle
+    if (
+      cardType === 'site' &&
+      (box.role === 'title' || box.role === 'type' || box.id === 'box-title' || box.id === 'box-type')
+    ) {
+      continue;
+    }
+
+    const x = (box.xPercent / 100) * targetWidth;
+    const y = (box.yPercent / 100) * targetHeight;
+    const w = (box.widthPercent / 100) * targetWidth;
+    const h = box.heightPercent ? (box.heightPercent / 100) * targetHeight : 40 * scale;
+
+    // Fundo da caixa
+    if (box.bgColor && box.bgColor !== 'transparent') {
+      ctx.fillStyle = box.bgColor;
+      roundRect(ctx, x, y, w, h, box.borderRadiusPx * scale);
+      ctx.fill();
+    }
+
+    // Borda da caixa
+    if (box.borderWidthPx > 0 && box.borderColor && box.borderColor !== 'transparent') {
+      ctx.strokeStyle = box.borderColor;
+      ctx.lineWidth = box.borderWidthPx * scale;
+      roundRect(ctx, x, y, w, h, box.borderRadiusPx * scale);
+      ctx.stroke();
+    }
+
+    // Configuração Tipográfica com Auto Fit
+    ctx.fillStyle = box.textColor || '#000000';
+    const fitResult = calculateAutoFitFontSize(box, previewWidth, previewHeight);
+    const effectiveBaseFontSize = fitResult.effectiveFontSizePx;
+    const computedFontSize = Math.max(4, Math.round(effectiveBaseFontSize * scale));
+    ctx.font = getCanvasFontSpec(box, computedFontSize);
+    ctx.textBaseline = 'top';
+
+    // Aplicação de Espaçamento entre Letras (Letter Spacing) no Canvas
+    if ('letterSpacing' in ctx) {
+      const letterSpace = (box.letterSpacingPx || 0) * scale;
+      (ctx as unknown as { letterSpacing: string }).letterSpacing = `${letterSpace}px`;
+    }
+
+    // Aplicação de Espaçamento entre Palavras (Word Spacing) no Canvas
+    if ('wordSpacing' in ctx) {
+      const wordSpace = (box.wordSpacingPx || 0) * scale;
+      (ctx as unknown as { wordSpacing: string }).wordSpacing = `${wordSpace}px`;
+    }
+
+    const padX = (box.paddingXPx !== undefined ? box.paddingXPx : (box.paddingPx ?? 0)) * scale;
+    const padY = (box.paddingYPx !== undefined ? box.paddingYPx : (box.paddingPx ?? 0)) * scale;
+    const innerH = Math.max(1, h - padY * 2);
+
+    // Cálculo da entrelinha proporcional (line-height)
+    const effectiveLineHeight = box.lineHeight !== undefined ? box.lineHeight : 1.25;
+    const lineHeightPx = computedFontSize * effectiveLineHeight;
+    const paragraphSpacingPx = (box.paragraphSpacingPx !== undefined ? box.paragraphSpacingPx : 4) * scale;
+
+    const hasStroke = Boolean(box.textStrokeEnabled && (box.textStrokeWidthPx ?? 0) > 0);
+    const strokeWidth = (box.textStrokeWidthPx || 0) * scale;
+    const strokeColor = box.textStrokeColor || '#000000';
+
+    if (box.isMultiline) {
+      wrapTextAdvanced(
+        ctx,
+        box.content,
+        x,
+        y,
+        w,
+        h,
+        padX,
+        padY,
+        lineHeightPx,
+        paragraphSpacingPx,
+        box.textAlign,
+        box.paragraphAlignments,
+        {
+          enabled: hasStroke,
+          color: strokeColor,
+          width: strokeWidth,
+        }
+      );
+    } else {
+      const singleAlign = (box.paragraphAlignments && box.paragraphAlignments[0]) || box.textAlign || 'left';
+      let textX = x + padX;
+      if (singleAlign === 'center') {
+        ctx.textAlign = 'center';
+        textX = x + w / 2;
+      } else if (singleAlign === 'right') {
+        ctx.textAlign = 'right';
+        textX = x + w - padX;
+      } else {
+        ctx.textAlign = 'left';
+      }
+
+      // Alinhamento vertical fiel ao CSS do editor: top + padY + compensação de entrelinha proporcional
+      const halfLeading = ((effectiveLineHeight - 1) * computedFontSize) / 2;
+      const textY = y + padY + halfLeading;
+      if (hasStroke && strokeWidth > 0) {
+        ctx.save();
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = strokeWidth * 2;
+        ctx.lineJoin = 'round';
+        ctx.miterLimit = 2;
+        ctx.strokeText(box.content, textX, textY);
+        ctx.restore();
+      }
+      ctx.fillText(box.content, textX, textY);
+    }
+
+    // Reset de espaçamentos para evitar vazamentos em outros elementos
+    if ('letterSpacing' in ctx) {
+      (ctx as unknown as { letterSpacing: string }).letterSpacing = '0px';
+    }
+    if ('wordSpacing' in ctx) {
+      (ctx as unknown as { wordSpacing: string }).wordSpacing = '0px';
+    }
+  }
+
+  // 7. Download automático do arquivo PNG com cantos transparentes e recorte fiel
+  ctx.restore();
+  const dataUrl = canvas.toDataURL('image/png');
+  const link = document.createElement('a');
+  link.download = fileName;
+  link.href = dataUrl;
+  link.click();
+}
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    const safeSrc =
+      src.startsWith('data:') || src.startsWith('blob:')
+        ? src
+        : encodeURI(decodeURI(src));
+    img.src = safeSrc;
+  });
+}
+
+function drawCoverImage(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  fit: 'cover' | 'contain' | 'fill'
+) {
+  if (fit === 'fill') {
+    ctx.drawImage(img, x, y, w, h);
+    return;
+  }
+
+  const imgRatio = img.width / img.height;
+  const targetRatio = w / h;
+
+  let dw = w;
+  let dh = h;
+  let dx = x;
+  let dy = y;
+
+  if (fit === 'cover') {
+    if (imgRatio > targetRatio) {
+      dw = h * imgRatio;
+      dx = x - (dw - w) / 2;
+    } else {
+      dh = w / imgRatio;
+      dy = y - (dh - h) / 2;
+    }
+  } else {
+    // contain
+    if (imgRatio > targetRatio) {
+      dh = w / imgRatio;
+      dy = y + (h - dh) / 2;
+    } else {
+      dw = h * imgRatio;
+      dx = x + (w - dw) / 2;
+    }
+  }
+
+  ctx.drawImage(img, dx, dy, dw, dh);
+}
+
+function roundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number
+) {
+  if (w < 2 * r) r = w / 2;
+  if (h < 2 * r) r = h / 2;
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/**
+ * Renderizador avançado de texto com quebra por parágrafos manuais (\n),
+ * entrelinha customizada (line-height), espaçamento entre parágrafos
+ * e alinhamento individual por parágrafo / linha.
+ */
+function wrapTextAdvanced(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  boxX: number,
+  boxY: number,
+  boxW: number,
+  boxH: number,
+  padX: number,
+  padY: number,
+  lineHeight: number,
+  paragraphSpacing: number,
+  defaultAlign: 'left' | 'center' | 'right' | 'justify',
+  paragraphAlignments?: ('left' | 'center' | 'right' | 'justify')[],
+  strokeOptions?: {
+    enabled: boolean;
+    color: string;
+    width: number;
+  }
+) {
+  const paragraphs = text.split(/\r?\n/);
+  let currentY = boxY + padY;
+  const maxWidth = Math.max(10, boxW - padX * 2);
+  const maxHeight = Math.max(10, boxH - padY * 2);
+
+  const renderLine = (str: string, lx: number, ly: number) => {
+    if (strokeOptions?.enabled && strokeOptions.width > 0) {
+      ctx.save();
+      ctx.strokeStyle = strokeOptions.color;
+      ctx.lineWidth = strokeOptions.width * 2;
+      ctx.lineJoin = 'round';
+      ctx.miterLimit = 2;
+      ctx.strokeText(str, lx, ly);
+      ctx.restore();
+    }
+    ctx.fillText(str, lx, ly);
+  };
+
+  for (let p = 0; p < paragraphs.length; p++) {
+    const paragraph = paragraphs[p];
+    const pAlign = (paragraphAlignments && paragraphAlignments[p]) || defaultAlign || 'left';
+
+    let lineX = boxX + padX;
+    if (pAlign === 'center') {
+      ctx.textAlign = 'center';
+      lineX = boxX + boxW / 2;
+    } else if (pAlign === 'right') {
+      ctx.textAlign = 'right';
+      lineX = boxX + boxW - padX;
+    } else {
+      ctx.textAlign = 'left';
+      lineX = boxX + padX;
+    }
+
+    // Parágrafo vazio (linha em branco intencional)
+    if (!paragraph.trim()) {
+      currentY += lineHeight + paragraphSpacing;
+      if (currentY > boxY + padY + maxHeight) return;
+      continue;
+    }
+
+    const words = paragraph.split(' ');
+    let line = '';
+
+    for (let n = 0; n < words.length; n++) {
+      const testLine = line ? `${line} ${words[n]}` : words[n];
+      const metrics = ctx.measureText(testLine);
+      const testWidth = metrics.width;
+
+      if (testWidth > maxWidth && line) {
+        if (currentY + lineHeight > boxY + padY + maxHeight) {
+          renderLine(line.trim() + '...', lineX, currentY);
+          return;
+        }
+        renderLine(line, lineX, currentY);
+        line = words[n];
+        currentY += lineHeight;
+      } else {
+        line = testLine;
+      }
+    }
+
+    if (line) {
+      if (currentY + lineHeight > boxY + padY + maxHeight) {
+        renderLine(line.trim() + '...', lineX, currentY);
+        return;
+      }
+      renderLine(line, lineX, currentY);
+      currentY += lineHeight;
+    }
+
+    // Adiciona espaçamento entre parágrafos (apenas se não for o último parágrafo)
+    if (p < paragraphs.length - 1) {
+      currentY += paragraphSpacing;
+    }
+  }
+}

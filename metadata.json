@@ -1,0 +1,6 @@
+{
+  "name": "CardForge • Arcane Atelier - Construtor de Cartas Sorcery",
+  "description": "Atelier arcano para criação e customização de cartas de fantasia para Sorcery: Contested Realm.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,135 @@
+@import "tailwindcss";
+
+@theme {
+  --font-arcane: 'Cinzel', 'Cormorant Garamond', Georgia, serif;
+  --font-editorial: 'Cormorant Garamond', Georgia, serif;
+  --font-ui: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+
+  --color-canvas-bg: #24221E;
+  --color-surface-card: #302D27;
+  --color-surface-secondary: #34352D;
+  --color-surface-input: #272420;
+  --color-text-primary: #E8DECA;
+  --color-text-secondary: #B5A995;
+  --color-text-muted: #8F8270;
+  --color-bronze-gold: #C5A675;
+  --color-bronze-border: #65543C;
+  --color-bronze-dark: #453B2D;
+  --color-burgundy-primary: #A24F43;
+  --color-burgundy-hover: #B85B4E;
+  --color-forest-accent: #4D6B58;
+  --color-steel-accent: #5A758A;
+}
+
+/* Classes utilitárias da identidade visual Arcane Atelier */
+.font-arcane {
+  font-family: 'Cinzel', 'Cormorant Garamond', Georgia, serif;
+}
+
+.font-editorial {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+}
+
+.font-ui {
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+/* Scrollbar refinado em tom escuro carvão e bronze */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #24221E;
+}
+::-webkit-scrollbar-thumb {
+  background: #65543C;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #C5A675;
+}
+
+/* ============================================================
+   FONTES PERSONALIZADAS PARA O CRIADOR DE CARTAS (CardForge)
+   (Preservadas estritamente para o interior da carta)
+   ============================================================ */
+
+/* 1. Morpheus (Fonte medieval / fantasia para títulos e classificações) */
+@font-face {
+  font-family: 'Morpheus';
+  src: url('/fonts/morpheus.woff') format('woff'),
+       url('https://fonts.cdnfonts.com/s/8080/MORPHEUS.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 2. Palatino Regular (Fonte serifada clássica para descrições e habilidades) */
+@font-face {
+  font-family: 'Palatino';
+  src: local('Palatino Linotype'),
+       local('Palatino'),
+       url('/fonts/palatino-regular.ttf') format('truetype'),
+       url('https://fonts.cdnfonts.com/s/13595/pala.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 3. Palatino Italic (Versão itálica para textos narrativos e citações) */
+@font-face {
+  font-family: 'Palatino';
+  src: local('Palatino Linotype Italic'),
+       local('Palatino-Italic'),
+       local('Palatino Italic'),
+       url('/fonts/palatino-italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Palatino Italic';
+  src: local('Palatino Linotype Italic'),
+       local('Palatino-Italic'),
+       local('Palatino Italic'),
+       url('/fonts/palatino-italic.ttf') format('truetype');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* 4. Book Antiqua (Fonte serifada alternativa) */
+@font-face {
+  font-family: 'Book Antiqua';
+  src: local('Book Antiqua'),
+       url('/fonts/book-antiqua.woff') format('woff'),
+       url('https://fonts.cdnfonts.com/s/13818/BKANT.woff') format('woff');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* 5. Book Antiqua Italic (Versão itálica da Book Antiqua) */
+@font-face {
+  font-family: 'Book Antiqua';
+  src: local('Book Antiqua Italic'),
+       local('Book Antiqua-Italic'),
+       url('/fonts/book-antiqua-italic.woff') format('woff'),
+       url('https://fonts.cdnfonts.com/s/13818/ANTQUAI.woff') format('woff');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Book Antiqua Italic';
+  src: local('Book Antiqua Italic'),
+       local('Book Antiqua-Italic'),
+       url('/fonts/book-antiqua-italic.woff') format('woff'),
+       url('https://fonts.cdnfonts.com/s/13818/ANTQUAI.woff') format('woff');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
