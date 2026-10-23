@@ -251,7 +251,7 @@ export function getStoredCardTypeState(cardType: CardTypeId): CardTypeState {
       const parsed = JSON.parse(raw);
       const defaultState = getDefaultCardTypeState(cardType);
       const attributeFromFrame = parsed.frameConfig?.imageUrl
-        ? findAttributeByFrameUrl(parsed.frameConfig.imageUrl)?.id
+        ? findAttributeByFrameUrl(parsed.frameConfig.imageUrl, cardType)?.id
         : undefined;
 
       // Normalização dimensional rigorosa:
@@ -562,7 +562,7 @@ export function createNewCardState(
   const frameConfig: CardFrameConfig = newAttribute
     ? {
         ...base.frameConfig,
-        imageUrl: getFrameUrlForAttribute(newAttribute),
+        imageUrl: getFrameUrlForAttribute(newAttribute, cardType),
         opacity: 1,
         fit: 'fill',
         isVisible: true,

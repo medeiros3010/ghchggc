@@ -452,7 +452,7 @@ export default function App() {
   };
 
   const handleConfirmAttributeSelection = (targetType: CardTypeId, attrId: CardAttributeId) => {
-    const frameUrl = getFrameUrlForAttribute(attrId);
+    const frameUrl = getFrameUrlForAttribute(attrId, targetType);
 
     setCardStates((prevAll) => {
       const existing = prevAll[targetType] || getDefaultCardTypeState(targetType);
@@ -492,7 +492,7 @@ export default function App() {
   };
 
   const handleSelectAttribute = (attrId: CardAttributeId) => {
-    const frameUrl = getFrameUrlForAttribute(attrId);
+    const frameUrl = getFrameUrlForAttribute(attrId, activeCardType);
     updateActiveCardState((state) => ({
       ...state,
       selectedAttribute: attrId,

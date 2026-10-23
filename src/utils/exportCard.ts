@@ -205,8 +205,8 @@ export async function exportCardToPng(
   // 4B. Renderizar Thresholds (Afinidades Elementais ao lado da Mana - se ativado e compatível com o atributo)
   const effectiveAttribute =
     selectedAttribute ||
-    (frameConfig?.imageUrl ? findAttributeByFrameUrl(frameConfig.imageUrl)?.id : undefined);
-  const allowedThresholdElements = getAllowedThresholdElements(effectiveAttribute);
+    (frameConfig?.imageUrl ? findAttributeByFrameUrl(frameConfig.imageUrl, cardType)?.id : undefined);
+  const allowedThresholdElements = getAllowedThresholdElements(effectiveAttribute, cardType);
 
   if (
     allowedThresholdElements.length > 0 &&

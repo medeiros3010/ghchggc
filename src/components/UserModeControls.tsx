@@ -37,6 +37,7 @@ import {
   CardAttributeId,
   getAllowedThresholdElements,
   findAttributeByFrameUrl,
+  getAttributesForType,
 } from '../types/cardAttribute';
 import {
   FileText,
@@ -130,8 +131,8 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
 
   const effectiveAttribute =
     selectedAttribute ||
-    (frameConfig?.imageUrl ? findAttributeByFrameUrl(frameConfig.imageUrl)?.id : undefined);
-  const allowedThresholdElements = getAllowedThresholdElements(effectiveAttribute);
+    (frameConfig?.imageUrl ? findAttributeByFrameUrl(frameConfig.imageUrl, activeCardType)?.id : undefined);
+  const allowedThresholdElements = getAllowedThresholdElements(effectiveAttribute, activeCardType);
 
   // Helpers de Mana
   const handleStepMana = (delta: number) => {
@@ -1895,13 +1896,20 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
                 )}
               </div>
 
-              {/* Grid dos 6 atributos */}
-              <div className="grid grid-cols-3 gap-2">
-                {CARD_ATTRIBUTES.map((attr) => {
+              {/* Grid dos atributos conforme o tipo de carta */}
+              <div
+                className={`grid gap-2 ${
+                  activeCardType === 'site'
+                    ? 'grid-cols-2 sm:grid-cols-3'
+                    : 'grid-cols-3'
+                }`}
+              >
+                {getAttributesForType(activeCardType).map((attr) => {
                   const isCurrent =
                     frameConfig?.imageUrl?.includes(attr.fileName) ||
                     frameConfig?.imageUrl?.includes(`/${attr.id}.png`) ||
                     frameConfig?.imageUrl?.includes(`/${attr.id}_`) ||
+                    frameConfig?.imageUrl?.includes(`/${attr.id}(1).png`) ||
                     selectedAttribute === attr.id;
 
                   return (
@@ -1923,7 +1931,11 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
                           : 'bg-[#24221E] hover:bg-[#34352D] border-[#453B2D] hover:border-[#65543C]'
                       }`}
                     >
-                      <div className="w-full aspect-[63/88] rounded bg-[#1A1916] overflow-hidden mb-1 relative border border-[#453B2D] flex items-center justify-center">
+                      <div
+                        className={`w-full ${
+                          activeCardType === 'site' ? 'aspect-[88/63]' : 'aspect-[63/88]'
+                        } rounded bg-[#1A1916] overflow-hidden mb-1 relative border border-[#453B2D] flex items-center justify-center`}
+                      >
                         <img
                           src={attr.framePath}
                           alt={attr.name}

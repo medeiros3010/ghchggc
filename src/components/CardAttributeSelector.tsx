@@ -14,6 +14,7 @@ import {
   CARD_ATTRIBUTES,
   CardAttributeDefinition,
   CardAttributeId,
+  getAttributesForType,
 } from '../types/cardAttribute';
 import {
   ChevronLeft,
@@ -39,6 +40,8 @@ export const CardAttributeSelector: React.FC<CardAttributeSelectorProps> = ({
   onBack,
 }) => {
   const cardTypeName = getCardTypeName(cardType);
+  const attributes = getAttributesForType(cardType);
+  const isSite = cardType === 'site';
 
   const renderTypeIcon = (typeId: CardTypeId, className = 'w-4 h-4') => {
     switch (typeId) {
@@ -50,6 +53,8 @@ export const CardAttributeSelector: React.FC<CardAttributeSelectorProps> = ({
         return <Sparkles className={className} />;
       case 'artifact':
         return <ShieldAlert className={className} />;
+      case 'site':
+        return <Layers className={className} />;
       default:
         return <Layers className={className} />;
     }
@@ -100,9 +105,15 @@ export const CardAttributeSelector: React.FC<CardAttributeSelectorProps> = ({
           </p>
         </div>
 
-        {/* Grade dos 6 Atributos com Miniatura Proporcional da Moldura */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 w-full">
-          {CARD_ATTRIBUTES.map((attr: CardAttributeDefinition) => {
+        {/* Grade dos Atributos com Miniatura Proporcional da Moldura */}
+        <div
+          className={`grid gap-4 w-full ${
+            isSite
+              ? 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 max-w-4xl'
+              : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-6'
+          }`}
+        >
+          {attributes.map((attr: CardAttributeDefinition) => {
             const isSelected = currentAttribute === attr.id;
 
             return (
@@ -123,8 +134,12 @@ export const CardAttributeSelector: React.FC<CardAttributeSelectorProps> = ({
                     : 'bg-[#302D27] hover:bg-[#34352D] border-[#65543C] hover:border-[#C5A675]'
                 }`}
               >
-                {/* Miniatura Proporcional da Moldura (Aspecto 63/88) */}
-                <div className="w-full aspect-[63/88] rounded overflow-hidden bg-[#24221E] border border-[#453B2D] group-hover:border-[#65543C] mb-3 relative flex items-center justify-center p-1 transition-all">
+                {/* Miniatura Proporcional da Moldura (Aspecto 88/63 para Site, 63/88 para outros) */}
+                <div
+                  className={`w-full ${
+                    isSite ? 'aspect-[88/63]' : 'aspect-[63/88]'
+                  } rounded overflow-hidden bg-[#24221E] border border-[#453B2D] group-hover:border-[#65543C] mb-3 relative flex items-center justify-center p-1 transition-all`}
+                >
                   <img
                     src={attr.framePath}
                     alt={`Moldura ${attr.name}`}

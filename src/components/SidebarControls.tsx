@@ -37,6 +37,7 @@ import {
   CardAttributeDefinition,
   getAllowedThresholdElements,
   findAttributeByFrameUrl,
+  getAttributesForType,
 } from '../types/cardAttribute';
 import { SingleCombatControls } from './combat/SingleCombatControls';
 import { DualCombatControls } from './combat/DualCombatControls';
@@ -1750,8 +1751,8 @@ export const SidebarControls: React.FC<SidebarControlsProps> = ({
         {activeTab === 'manaThreshold' && (() => {
           const effectiveAttribute =
             selectedAttribute ||
-            (frameConfig.imageUrl ? findAttributeByFrameUrl(frameConfig.imageUrl)?.id : undefined);
-          const allowedThresholdElements = getAllowedThresholdElements(effectiveAttribute);
+            (frameConfig.imageUrl ? findAttributeByFrameUrl(frameConfig.imageUrl, cardType)?.id : undefined);
+          const allowedThresholdElements = getAllowedThresholdElements(effectiveAttribute, cardType);
           const distSummary = computeThresholdDistribution(
             sorceryConfig.threshold,
             sorceryConfig.mana,
@@ -4410,6 +4411,7 @@ export const SidebarControls: React.FC<SidebarControlsProps> = ({
             </div>
 
             {/* Seletor Oficial de Molduras por Atributo (Multi, Neutral, Land, Air, Fire, Water) */}
+            {/* Seletor Oficial de Molduras por Atributo */}
             <div className="space-y-2 pt-3 border-t border-slate-200">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
@@ -4417,19 +4419,20 @@ export const SidebarControls: React.FC<SidebarControlsProps> = ({
                   <span>Molduras de Atributos (Sorcery)</span>
                 </label>
                 <span className="text-[10px] font-mono bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.5 rounded">
-                  6 molduras
+                  {getAttributesForType(cardType).length} molduras
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 leading-tight">
                 Selecione uma das molduras ancestrais em alta fidelidade para aplicar à carta:
               </p>
 
-              <div className="grid grid-cols-3 gap-2 pt-1">
-                {CARD_ATTRIBUTES.map((attr) => {
+              <div className={`grid gap-2 pt-1 ${cardType === 'site' ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-3'}`}>
+                {getAttributesForType(cardType).map((attr) => {
                   const isCurrent =
                     frameConfig.imageUrl?.includes(attr.fileName) ||
                     frameConfig.imageUrl?.includes(`/${attr.id}.png`) ||
                     frameConfig.imageUrl?.includes(`/${attr.id}_`) ||
+                    frameConfig.imageUrl?.includes(`/${attr.id}(1).png`) ||
                     selectedAttribute === attr.id;
 
                   return (
@@ -4451,7 +4454,7 @@ export const SidebarControls: React.FC<SidebarControlsProps> = ({
                           : 'bg-white hover:bg-slate-50 border-slate-200 hover:border-slate-300'
                       }`}
                     >
-                      <div className="w-full aspect-[63/88] rounded bg-slate-100 overflow-hidden mb-1 relative border border-slate-200 flex items-center justify-center">
+                      <div className={`w-full ${cardType === 'site' ? 'aspect-[88/63]' : 'aspect-[63/88]'} rounded bg-slate-100 overflow-hidden mb-1 relative border border-slate-200 flex items-center justify-center`}>
                         <img
                           src={attr.framePath}
                           alt={attr.name}

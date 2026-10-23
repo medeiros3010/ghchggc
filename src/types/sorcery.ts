@@ -947,7 +947,7 @@ export function computeThresholdDistribution(
     // Se houver filtro de atributos permitidos, garante que os 5 novos modelos não sejam descartados
     // caso o usuário os tenha incrementado explicitamente na carta
     if (allowedElements && !allowedElements.includes(elem)) {
-      if (!['espirito', 'materia', 'vazio', 'vida', 'morte'].includes(elem)) {
+      if (cardType === 'site' || !['espirito', 'materia', 'vazio', 'vida', 'morte'].includes(elem)) {
         continue;
       }
     }
