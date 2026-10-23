@@ -133,3 +133,7 @@
   font-style: italic;
   font-display: swap;
 }
+
+/* 6. Fantaisie artistique (Fonte Art Nouveau / Fantasia decorativa) */
+@import "./fonts_fantaisie.css";
+

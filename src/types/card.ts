@@ -110,6 +110,7 @@ export function getCardDimensionsForType(cardType?: import('./cardType').CardTyp
  */
 export type FontFamilyType =
   | 'morpheus'
+  | 'fantaisie-artistique'
   | 'palatino'
   | 'palatino-italic'
   | 'book-antiqua'

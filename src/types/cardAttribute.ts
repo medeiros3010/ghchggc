@@ -188,6 +188,7 @@ export function getAllowedThresholdElements(
   attribute?: CardAttributeId | string | null
 ): import('./sorcery').SorceryElement[] {
   const newModels: import('./sorcery').SorceryElement[] = [
+    'espirito',
     'materia',
     'vazio',
     'vida',

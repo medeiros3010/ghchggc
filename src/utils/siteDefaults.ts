@@ -195,9 +195,16 @@ export function getSiteOfficialDefaultLayout(): SiteOfficialLayout {
     if (rawOfficial) {
       const parsed = JSON.parse(rawOfficial);
       if (parsed && parsed.threshold && parsed.compositeTitle) {
+        const comp = { ...fallback.compositeTitle, ...parsed.compositeTitle };
+        if (comp.fontFamily === 'morpheus') {
+          comp.fontFamily = 'fantaisie-artistique';
+        }
+        if (comp.typeFontFamily === 'morpheus' || comp.typeFontFamily === 'palatino-italic') {
+          comp.typeFontFamily = 'fantaisie-artistique';
+        }
         return {
           threshold: { ...fallback.threshold, ...parsed.threshold },
-          compositeTitle: { ...fallback.compositeTitle, ...parsed.compositeTitle },
+          compositeTitle: comp,
           combat: { ...fallback.combat, ...(parsed.combat || {}) },
         };
       }
@@ -235,7 +242,7 @@ export function getSiteOfficialDefaultLayout(): SiteOfficialLayout {
                 widthPercent: titleBox.widthPercent,
                 heightPercent: titleBox.heightPercent,
                 fontSizePx: titleBox.fontSizePx,
-                fontFamily: titleBox.fontFamily,
+                fontFamily: (titleBox.fontFamily === 'morpheus' || !titleBox.fontFamily) ? 'fantaisie-artistique' : titleBox.fontFamily,
                 fontWeight: titleBox.fontWeight,
                 textAlign: titleBox.textAlign,
                 textColor: titleBox.textColor,
@@ -254,7 +261,9 @@ export function getSiteOfficialDefaultLayout(): SiteOfficialLayout {
                 textStrokeColor: titleBox.textStrokeColor,
 
                 typeFontSizePx: typeBox?.fontSizePx || fallback.compositeTitle.typeFontSizePx,
-                typeFontFamily: typeBox?.fontFamily || fallback.compositeTitle.typeFontFamily,
+                typeFontFamily: (typeBox?.fontFamily === 'morpheus' || typeBox?.fontFamily === 'palatino-italic' || !typeBox?.fontFamily)
+                  ? 'fantaisie-artistique'
+                  : (typeBox?.fontFamily || fallback.compositeTitle.typeFontFamily),
                 typeFontWeight: typeBox?.fontWeight || fallback.compositeTitle.typeFontWeight,
                 typeTextColor: typeBox?.textColor || fallback.compositeTitle.typeTextColor,
                 typeLetterSpacingPx: typeBox?.letterSpacingPx ?? fallback.compositeTitle.typeLetterSpacingPx,
@@ -474,6 +483,7 @@ export function applySiteOfficialLayoutToSorcery(
       earth: keepQuantities ? sorcery.threshold.earth : 0,
       fire: keepQuantities ? sorcery.threshold.fire : 0,
       water: keepQuantities ? sorcery.threshold.water : 0,
+      espirito: keepQuantities ? (sorcery.threshold.espirito || 0) : 0,
       materia: keepQuantities ? (sorcery.threshold.materia || 0) : 0,
       vazio: keepQuantities ? (sorcery.threshold.vazio || 0) : 0,
       vida: keepQuantities ? (sorcery.threshold.vida || 0) : 0,

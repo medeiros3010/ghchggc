@@ -602,6 +602,7 @@ export const CardCanvas: React.FC<CardCanvasProps> = ({
               const symHeight = sorceryConfig.threshold.symbolHeightPercent * (sorceryConfig.threshold.scale || 1);
               const totalW = Math.max(dist.bounds.widthPercent, symWidth);
               const totalH = Math.max(dist.bounds.heightPercent, symHeight);
+              const containerLeft = dist.bounds.startXPercent;
 
               return (
                 <div
@@ -617,7 +618,7 @@ export const CardCanvas: React.FC<CardCanvasProps> = ({
                   }}
                   style={{
                     position: 'absolute',
-                    left: `${sorceryConfig.threshold.xPercent}%`,
+                    left: `${containerLeft}%`,
                     top: `${sorceryConfig.threshold.yPercent}%`,
                     width: `${totalW}%`,
                     height: `${totalH}%`,
@@ -637,7 +638,7 @@ export const CardCanvas: React.FC<CardCanvasProps> = ({
                   {/* Handle no Modo de Edição */}
                   {isEditMode && (
                     <div
-                      className={`absolute -top-4 left-0 h-4 px-1.5 flex items-center gap-1 text-[8px] font-mono rounded-t transition-opacity pointer-events-none ${
+                      className={`absolute -top-4 right-0 h-4 px-1.5 flex items-center gap-1 text-[8px] font-mono rounded-t transition-opacity pointer-events-none ${
                         isThresholdSelected
                           ? 'bg-[#C5A675] text-[#1C1A17] font-bold opacity-100'
                           : 'bg-[#302D27] text-[#E8DECA] opacity-0 group-hover:opacity-90'
@@ -648,33 +649,38 @@ export const CardCanvas: React.FC<CardCanvasProps> = ({
                     </div>
                   )}
 
-                  {/* Símbolos em linha horizontal proporcional ao container */}
-                  {dist.items.map((item, idx) => (
-                    <div
-                      key={`site-threshold-${item.index}-${item.element}`}
-                      style={{
-                        position: 'absolute',
-                        left: `${(idx * (symWidth + gapX) / totalW) * 100}%`,
-                        top: '0%',
-                        width: `${(symWidth / totalW) * 100}%`,
-                        height: '100%',
-                        zIndex: 50 + idx,
-                      }}
-                      className="flex items-center justify-center overflow-visible pointer-events-none select-none"
-                    >
-                      <img
-                        src={getThresholdElementImagePath(
-                          item.element,
-                          sorceryConfig.threshold.elementImages
-                        )}
-                        alt={`Threshold ${item.element}`}
+                  {/* Símbolos em linha horizontal da direita para a esquerda */}
+                  {dist.items.map((item, idx) => {
+                    const relLeftPercent = totalW > 0 ? ((item.xPercent - containerLeft) / totalW) * 100 : 0;
+                    const relWidthPercent = totalW > 0 ? (symWidth / totalW) * 100 : 100;
+
+                    return (
+                      <div
+                        key={`site-threshold-${item.index}-${item.element}`}
                         style={{
-                          objectFit: sorceryConfig.threshold.keepAspectRatio ? 'contain' : 'fill',
+                          position: 'absolute',
+                          left: `${relLeftPercent}%`,
+                          top: '0%',
+                          width: `${relWidthPercent}%`,
+                          height: '100%',
+                          zIndex: 50 + idx,
                         }}
-                        className="w-full h-full object-contain drop-shadow"
-                      />
-                    </div>
-                  ))}
+                        className="flex items-center justify-center overflow-visible pointer-events-none select-none"
+                      >
+                        <img
+                          src={getThresholdElementImagePath(
+                            item.element,
+                            sorceryConfig.threshold.elementImages
+                          )}
+                          alt={`Threshold ${item.element}`}
+                          style={{
+                            objectFit: sorceryConfig.threshold.keepAspectRatio ? 'contain' : 'fill',
+                          }}
+                          className="w-full h-full object-contain drop-shadow"
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               );
             }

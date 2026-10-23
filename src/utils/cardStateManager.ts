@@ -292,10 +292,14 @@ export function getStoredCardTypeState(cardType: CardTypeId): CardTypeState {
                 box.role === 'type' ||
                 box.id === 'box-title' ||
                 box.id === 'box-type';
-              if (isTitleOrType && (box.textStrokeWidthPx === 2.5 || box.textStrokeWidthPx === undefined)) {
-                return { ...box, textStrokeWidthPx: 0.8 };
+              let updatedBox = box;
+              if (isTitleOrType && (box.fontFamily === 'morpheus' || box.fontFamily === 'palatino-italic' || !box.fontFamily)) {
+                updatedBox = { ...updatedBox, fontFamily: 'fantaisie-artistique' };
               }
-              return box;
+              if (isTitleOrType && (box.textStrokeWidthPx === 2.5 || box.textStrokeWidthPx === undefined)) {
+                updatedBox = { ...updatedBox, textStrokeWidthPx: 0.8 };
+              }
+              return updatedBox;
             })
           : defaultState.textBoxes,
         sorceryConfig: (() => {
@@ -305,6 +309,7 @@ export function getStoredCardTypeState(cardType: CardTypeId): CardTypeState {
             const mergedElementImages = {
               ...(defaultThreshold?.elementImages || {}),
               ...(cfg.threshold.elementImages || {}),
+              espirito: cfg.threshold.elementImages?.espirito || '/assets/sorcery/Espirito.png',
               materia: cfg.threshold.elementImages?.materia || '/assets/sorcery/Matéria.png',
               vazio: cfg.threshold.elementImages?.vazio || '/assets/sorcery/Vazio.png',
               vida: cfg.threshold.elementImages?.vida || '/assets/sorcery/Vida.png',
@@ -319,6 +324,7 @@ export function getStoredCardTypeState(cardType: CardTypeId): CardTypeState {
               'earth',
               'fire',
               'water',
+              'espirito',
               'materia',
               'vazio',
               'vida',
@@ -331,6 +337,7 @@ export function getStoredCardTypeState(cardType: CardTypeId): CardTypeState {
 
             const updatedThreshold = {
               ...cfg.threshold,
+              espirito: cfg.threshold.espirito ?? 0,
               materia: cfg.threshold.materia ?? 0,
               vazio: cfg.threshold.vazio ?? 0,
               vida: cfg.threshold.vida ?? 0,
@@ -533,6 +540,9 @@ export function createNewCardState(
     return {
       ...box,
       content: defaultBox ? defaultBox.content : '',
+      fontFamily: isTitleOrType && (box.fontFamily === 'morpheus' || box.fontFamily === 'palatino-italic' || !box.fontFamily)
+        ? 'fantaisie-artistique'
+        : box.fontFamily,
       textStrokeWidthPx:
         isTitleOrType && (box.textStrokeWidthPx === 2.5 || box.textStrokeWidthPx === undefined)
           ? 0.8

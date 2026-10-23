@@ -835,7 +835,7 @@ export default function App() {
             heightPercent: 7,
             fontSizePx: 18,
             fontWeight: 'bold',
-            fontFamily: 'morpheus',
+            fontFamily: 'fantaisie-artistique',
             textAlign: 'center',
             letterSpacingPx: 0,
             wordSpacingPx: 0,
@@ -1176,8 +1176,8 @@ export default function App() {
               </>
             )}
 
-            {/* Threshold (8 Modelos: Fogo, Água, Terra, Ar, Matéria, Vazio, Vida, Morte) */}
-            <div className="flex items-center gap-1" title="Thresholds (Fogo / Água / Terra / Ar / Matéria / Vazio / Vida / Morte)">
+            {/* Threshold (9 Modelos: Fogo, Água, Terra, Ar, Espírito, Matéria, Vazio, Vida, Morte) */}
+            <div className="flex items-center gap-1" title="Thresholds (Fogo / Água / Terra / Ar / Espírito / Matéria / Vazio / Vida / Morte)">
               <span className="text-[11px] font-medium text-[#B5A995] mr-0.5">Threshold:</span>
               <div className="flex items-center gap-1">
                 <span
@@ -1203,6 +1203,12 @@ export default function App() {
                   title="Ar (Air)"
                 >
                   💨 {sorceryConfig.threshold.air || 0}
+                </span>
+                <span
+                  className="px-1.5 py-0.5 bg-[#24221E] border border-[#65543C] text-[#63B3ED] rounded text-[10px] font-bold flex items-center gap-0.5"
+                  title="Espírito"
+                >
+                  ✨ {sorceryConfig.threshold.espirito || 0}
                 </span>
                 <span
                   className="px-1.5 py-0.5 bg-[#24221E] border border-[#65543C] text-[#C5A675] rounded text-[10px] font-bold flex items-center gap-0.5"

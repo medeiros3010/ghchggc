@@ -20,6 +20,14 @@ export const AVAILABLE_FONTS: FontDefinition[] = [
     category: 'Fantasia & TCG',
   },
   {
+    id: 'fantaisie-artistique',
+    name: 'Fantaisie artistique',
+    usage: 'Títulos e ornamentos (Art Nouveau / Fantasia decorativa)',
+    cssFamily: "'Fantaisie artistique', 'FantaisieArtistique', Georgia, serif",
+    isItalic: false,
+    category: 'Fantasia & TCG',
+  },
+  {
     id: 'palatino',
     name: 'Palatino Regular',
     usage: 'Descrições e habilidades (Serifada clássica)',
@@ -119,6 +127,8 @@ export function getCanvasFontSpec(
   let family = 'system-ui, sans-serif';
   if (box.fontFamily === 'morpheus') {
     family = "'Morpheus', serif";
+  } else if (box.fontFamily === 'fantaisie-artistique') {
+    family = "'Fantaisie artistique', 'FantaisieArtistique', Georgia, serif";
   } else if (box.fontFamily === 'palatino') {
     family = "'Palatino', 'Palatino Linotype', Georgia, serif";
   } else if (box.fontFamily === 'palatino-italic') {
@@ -145,6 +155,11 @@ export async function ensureAllFontsLoaded(): Promise<void> {
 
   const fontLoads = [
     document.fonts.load('16px "Morpheus"'),
+    document.fonts.load('bold 16px "Morpheus"'),
+    document.fonts.load('16px "Fantaisie artistique"'),
+    document.fonts.load('bold 16px "Fantaisie artistique"'),
+    document.fonts.load('16px "FantaisieArtistique"'),
+    document.fonts.load('bold 16px "FantaisieArtistique"'),
     document.fonts.load('16px "Palatino"'),
     document.fonts.load('italic 16px "Palatino"'),
     document.fonts.load('italic 16px "Palatino Italic"'),

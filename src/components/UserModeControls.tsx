@@ -590,11 +590,12 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
                         <div>
                           <label className="text-[11px] text-[#B5A995] block mb-1">Família Tipográfica:</label>
                           <select
-                            value={titleBox.fontFamily || 'morpheus'}
+                            value={titleBox.fontFamily || 'fantaisie-artistique'}
                             onChange={(e) => handleUpdateTitleTypography({ fontFamily: e.target.value as any })}
                             className="w-full px-2.5 py-1.5 bg-[#24221E] border border-[#453B2D] rounded text-[#E8DECA] focus:outline-none focus:border-[#C5A675] cursor-pointer"
                           >
                             <option value="morpheus">Morpheus (Gótica Clássica)</option>
+                            <option value="fantaisie-artistique">Fantaisie artistique</option>
                             <option value="palatino">Palatino</option>
                             <option value="palatino-italic">Palatino Italic</option>
                             <option value="book-antiqua">Book Antiqua</option>
@@ -733,12 +734,13 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
                         <div>
                           <label className="text-[11px] text-[#B5A995] block mb-1">Família Tipográfica:</label>
                           <select
-                            value={typeBox.fontFamily || 'palatino-italic'}
+                            value={typeBox.fontFamily || 'fantaisie-artistique'}
                             onChange={(e) => handleUpdateTypeTypography({ fontFamily: e.target.value as any })}
                             className="w-full px-2.5 py-1.5 bg-[#24221E] border border-[#453B2D] rounded text-[#E8DECA] focus:outline-none focus:border-[#C5A675] cursor-pointer"
                           >
                             <option value="palatino-italic">Palatino Italic</option>
                             <option value="palatino">Palatino</option>
+                            <option value="fantaisie-artistique">Fantaisie artistique</option>
                             <option value="book-antiqua-italic">Book Antiqua Italic</option>
                             <option value="book-antiqua">Book Antiqua</option>
                             <option value="morpheus">Morpheus (Gótica Clássica)</option>
@@ -1140,6 +1142,41 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
                         <button
                           type="button"
                           onClick={() => handleStepThreshold('air', 1)}
+                          className="w-6 h-6 flex items-center justify-center bg-[#302D27] hover:bg-[#34352D] text-[#E8DECA] border border-[#453B2D] rounded text-xs cursor-pointer"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Espírito */}
+                  {allowedThresholdElements.includes('espirito') && (
+                    <div className="bg-[#24221E] p-2 rounded border border-[#453B2D] flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-4 h-4 rounded-full bg-[#1a1815] border border-[#2b6cb0] p-0.5 flex items-center justify-center shrink-0">
+                          <img
+                            src={getThresholdElementImagePath('espirito', sorceryConfig.threshold.elementImages)}
+                            alt="Espírito"
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                        <span className="text-xs font-medium text-[#63B3ED]">Espírito</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleStepThreshold('espirito', -1)}
+                          className="w-6 h-6 flex items-center justify-center bg-[#302D27] hover:bg-[#34352D] text-[#E8DECA] border border-[#453B2D] rounded text-xs cursor-pointer"
+                        >
+                          -
+                        </button>
+                        <span className="w-5 text-center text-xs font-bold font-mono text-[#63B3ED]">
+                          {sorceryConfig.threshold.espirito || 0}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleStepThreshold('espirito', 1)}
                           className="w-6 h-6 flex items-center justify-center bg-[#302D27] hover:bg-[#34352D] text-[#E8DECA] border border-[#453B2D] rounded text-xs cursor-pointer"
                         >
                           +

@@ -706,6 +706,7 @@ export const SidebarControls: React.FC<SidebarControlsProps> = ({
                     >
                       <optgroup label="Fantasia & Card Games">
                         <option value="morpheus">Morpheus — Títulos e Classificações</option>
+                        <option value="fantaisie-artistique">Fantaisie artistique — Art Nouveau / Decorativa</option>
                       </optgroup>
                       <optgroup label="Serifadas Clássicas">
                         <option value="palatino">Palatino Regular — Descrições e Habilidades</option>
@@ -2386,7 +2387,73 @@ export const SidebarControls: React.FC<SidebarControlsProps> = ({
                           </div>
                         )}
 
-                        {/* 5. MATÉRIA */}
+                        {/* 5. ESPÍRITO */}
+                        {allowedThresholdElements.includes('espirito') && (
+                          <div className="flex items-center justify-between p-2.5 bg-sky-50/50 hover:bg-sky-50 rounded-lg border border-sky-200/70 transition-colors">
+                            <div className="flex items-center gap-2.5">
+                              <div className="w-9 h-9 rounded-md bg-white border border-sky-300 shadow-2xs flex items-center justify-center shrink-0 p-0.5">
+                                <img
+                                  src={getThresholdElementImagePath('espirito', sorceryConfig.threshold?.elementImages)}
+                                  alt="Espírito"
+                                  className="w-full h-full object-contain"
+                                />
+                              </div>
+                              <div>
+                                <span className="text-xs font-bold text-sky-950 block">
+                                  Espírito
+                                </span>
+                                <span className="text-[10px] text-sky-700">
+                                  {(sorceryConfig.threshold.espirito || 0) === 0
+                                    ? 'Nenhum requisito'
+                                    : `${sorceryConfig.threshold.espirito} ${sorceryConfig.threshold.espirito === 1 ? 'símbolo' : 'símbolos'}`}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  onUpdateSorceryThreshold({
+                                    espirito: Math.max(0, (sorceryConfig.threshold.espirito || 0) - 1),
+                                  })
+                                }
+                                disabled={(sorceryConfig.threshold.espirito || 0) <= 0}
+                                className="w-7 h-7 rounded bg-white hover:bg-slate-200 disabled:opacity-40 disabled:hover:bg-white border border-slate-300 text-slate-800 font-bold flex items-center justify-center text-xs transition-colors"
+                              >
+                                <Minus className="w-3.5 h-3.5" />
+                              </button>
+
+                              <input
+                                type="number"
+                                min={0}
+                                max={20}
+                                value={sorceryConfig.threshold.espirito || 0}
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value, 10);
+                                  onUpdateSorceryThreshold({
+                                    espirito: isNaN(val) || val < 0 ? 0 : val,
+                                  });
+                                }}
+                                className="w-10 text-center font-bold text-slate-800 text-xs py-1 border border-slate-300 rounded focus:ring-1 focus:ring-sky-500 bg-white"
+                              />
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  onUpdateSorceryThreshold({
+                                    espirito: (sorceryConfig.threshold.espirito || 0) + 1,
+                                  })
+                                }
+                                className="w-7 h-7 rounded bg-white hover:bg-slate-200 border border-slate-300 text-slate-800 font-bold flex items-center justify-center text-xs transition-colors"
+                              >
+                                <Plus className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 6. MATÉRIA */}
                         {allowedThresholdElements.includes('materia') && (
                           <div className="flex items-center justify-between p-2.5 bg-amber-50/50 hover:bg-amber-50 rounded-lg border border-amber-200/70 transition-colors">
                             <div className="flex items-center gap-2.5">
@@ -3386,10 +3453,10 @@ export const SidebarControls: React.FC<SidebarControlsProps> = ({
                         type="button"
                         onClick={() =>
                           onUpdateSorceryThreshold({
-                            elementOrder: ['fire', 'water', 'earth', 'air', 'materia', 'vazio', 'vida', 'morte'],
+                            elementOrder: ['fire', 'water', 'earth', 'air', 'espirito', 'materia', 'vazio', 'vida', 'morte'],
                           })
                         }
-                        title="Restaurar ordem padrão: Fogo, Água, Terra, Ar, Matéria, Vazio, Vida, Morte"
+                        title="Restaurar ordem padrão: Fogo, Água, Terra, Ar, Espírito, Matéria, Vazio, Vida, Morte"
                         className="text-[10px] text-slate-500 hover:text-indigo-600 flex items-center gap-1"
                       >
                         <RotateCcw className="w-3 h-3" />

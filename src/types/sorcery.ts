@@ -5,6 +5,7 @@ export type SorceryElement =
   | 'earth'
   | 'fire'
   | 'water'
+  | 'espirito'
   | 'materia'
   | 'vazio'
   | 'vida'
@@ -52,6 +53,14 @@ export const SORCERY_ELEMENTS: Record<SorceryElement, SorceryElementMetadata> = 
     glowColor: 'rgba(176, 212, 241, 0.4)',
     symbolDescription: 'Triângulo ascendente com barra horizontal prateada',
   },
+  espirito: {
+    id: 'espirito',
+    name: 'Espírito',
+    defaultPath: '/assets/sorcery/Espirito.png',
+    themeColor: '#4ea8de',
+    glowColor: 'rgba(78, 168, 222, 0.4)',
+    symbolDescription: 'Símbolo de Espírito: lâmina e losango azul celestial místico',
+  },
   materia: {
     id: 'materia',
     name: 'Matéria',
@@ -88,11 +97,12 @@ export const SORCERY_ELEMENTS: Record<SorceryElement, SorceryElementMetadata> = 
 
 /**
  * Retorna o caminho oficial do arquivo de imagem do Threshold correspondente.
- * Mapeia rigorosamente os 4 novos modelos aos seus respectivos arquivos de imagem:
- * - Matéria.png -> Threshold Matéria
- * - Vazio.png   -> Threshold Vazio
- * - Vida.png    -> Threshold Vida
- * - Morte.png   -> Threshold Morte
+ * Mapeia rigorosamente os 5 novos modelos aos seus respectivos arquivos de imagem:
+ * - Espirito.png -> Threshold Espírito
+ * - Matéria.png  -> Threshold Matéria
+ * - Vazio.png    -> Threshold Vazio
+ * - Vida.png     -> Threshold Vida
+ * - Morte.png    -> Threshold Morte
  * E preserva integralmente os modelos existentes:
  * - threshold_fire.png  -> Threshold Fogo
  * - threshold_water.png -> Threshold Água
@@ -114,6 +124,9 @@ export function getThresholdElementImagePath(
   }
 
   switch (norm) {
+    case 'espirito':
+    case 'espírito':
+      return '/assets/sorcery/Espirito.png';
     case 'materia':
     case 'matéria':
       return '/assets/sorcery/Matéria.png';
@@ -189,6 +202,7 @@ export interface SorceryThresholdConfig {
   earth: number;
   fire: number;
   water: number;
+  espirito?: number;
   materia?: number;
   vazio?: number;
   vida?: number;
@@ -585,11 +599,12 @@ export const PERMANENT_DEFAULT_THRESHOLD_CONFIG: SorceryThresholdConfig = {
   earth: 0,
   fire: 0,
   water: 0,
+  espirito: 0,
   materia: 0,
   vazio: 0,
   vida: 0,
   morte: 0,
-  elementOrder: ['air', 'earth', 'fire', 'water', 'materia', 'vazio', 'vida', 'morte'],
+  elementOrder: ['air', 'earth', 'fire', 'water', 'espirito', 'materia', 'vazio', 'vida', 'morte'],
   symbolWidthPercent: 4.8,
   symbolHeightPercent: 3.4,
   keepAspectRatio: true,
@@ -603,6 +618,7 @@ export const PERMANENT_DEFAULT_THRESHOLD_CONFIG: SorceryThresholdConfig = {
     water: '/assets/sorcery/threshold_water.png',
     earth: '/assets/sorcery/threshold_earth.png',
     air: '/assets/sorcery/threshold_air.png',
+    espirito: '/assets/sorcery/Espirito.png',
     materia: '/assets/sorcery/Matéria.png',
     vazio: '/assets/sorcery/Vazio.png',
     vida: '/assets/sorcery/Vida.png',
@@ -754,11 +770,12 @@ export const SITE_DEFAULT_THRESHOLD_CONFIG: SorceryThresholdConfig = {
   earth: 0,
   fire: 0,
   water: 0,
+  espirito: 0,
   materia: 0,
   vazio: 0,
   vida: 0,
   morte: 0,
-  elementOrder: ['air', 'earth', 'fire', 'water', 'materia', 'vazio', 'vida', 'morte'],
+  elementOrder: ['air', 'earth', 'fire', 'water', 'espirito', 'materia', 'vazio', 'vida', 'morte'],
   symbolWidthPercent: 3.8,
   symbolHeightPercent: 5.2,
   keepAspectRatio: true,
@@ -772,6 +789,7 @@ export const SITE_DEFAULT_THRESHOLD_CONFIG: SorceryThresholdConfig = {
     water: '/assets/sorcery/threshold_water.png',
     earth: '/assets/sorcery/threshold_earth.png',
     air: '/assets/sorcery/threshold_air.png',
+    espirito: '/assets/sorcery/Espirito.png',
     materia: '/assets/sorcery/Matéria.png',
     vazio: '/assets/sorcery/Vazio.png',
     vida: '/assets/sorcery/Vida.png',
@@ -865,13 +883,14 @@ export function computeThresholdDistribution(
     'earth',
     'fire',
     'water',
+    'espirito',
     'materia',
     'vazio',
     'vida',
     'morte',
   ];
 
-  // Garante que effectiveOrder contenha todos os 8 elementos conhecidos
+  // Garante que effectiveOrder contenha todos os 9 elementos conhecidos
   const rawOrder = Array.isArray(config?.elementOrder) && config.elementOrder.length > 0
     ? config.elementOrder
     : allKnownElements;
@@ -894,7 +913,14 @@ export function computeThresholdDistribution(
     if (!isNaN(direct) && direct > 0) return Math.floor(direct);
 
     // Suporte a chaves alternativas ou com acento
-    if (elem === 'materia') {
+    if (elem === 'espirito') {
+      const alt = Number(
+        (config as any)['espírito'] ??
+        (config as any)['Espírito'] ??
+        (config as any)['Espirito']
+      );
+      if (!isNaN(alt) && alt > 0) return Math.floor(alt);
+    } else if (elem === 'materia') {
       const alt = Number(
         (config as any)['matéria'] ??
         (config as any)['Matéria'] ??
@@ -918,10 +944,10 @@ export function computeThresholdDistribution(
     const count = getElementCount(elem);
     if (count <= 0) continue;
 
-    // Se houver filtro de atributos permitidos, garante que os 4 novos modelos não sejam descartados
+    // Se houver filtro de atributos permitidos, garante que os 5 novos modelos não sejam descartados
     // caso o usuário os tenha incrementado explicitamente na carta
     if (allowedElements && !allowedElements.includes(elem)) {
-      if (!['materia', 'vazio', 'vida', 'morte'].includes(elem)) {
+      if (!['espirito', 'materia', 'vazio', 'vida', 'morte'].includes(elem)) {
         continue;
       }
     }
@@ -977,11 +1003,13 @@ export function computeThresholdDistribution(
     };
   }
 
-  // EXCLUSIVO PARA CARTAS SITE: Distribuição em linha única horizontal
+  // EXCLUSIVO PARA CARTAS SITE: Distribuição em linha única horizontal da DIREITA para a ESQUERDA
   if (cardType === 'site') {
     const items: DistributedThresholdItem[] = [];
     for (let i = 0; i < totalSymbols; i++) {
-      const itemX = startX + i * (symWidth + gapX);
+      // O primeiro símbolo (i=0) permanece na âncora à direita (startX).
+      // Cada símbolo adicional (i=1, 2, ...) posiciona-se à esquerda do anterior.
+      const itemX = startX - i * (symWidth + gapX);
       const itemY = centerY - symHeight / 2;
       items.push({
         element: symbolList[i],
@@ -995,14 +1023,16 @@ export function computeThresholdDistribution(
       });
     }
 
-    const totalWidth = totalSymbols > 0 ? totalSymbols * symWidth + (totalSymbols - 1) * gapX : 0;
+    const totalWidth = totalSymbols > 0 ? symWidth + (totalSymbols - 1) * (symWidth + gapX) : 0;
+    const leftmostX = totalSymbols > 0 ? startX - (totalSymbols - 1) * (symWidth + gapX) : startX;
+
     return {
       items,
       totalColumns: totalSymbols,
       totalSymbols,
       centerY,
       bounds: {
-        startXPercent: startX,
+        startXPercent: leftmostX,
         startYPercent: centerY - symHeight / 2,
         widthPercent: totalWidth,
         heightPercent: symHeight,
@@ -1184,6 +1214,7 @@ export function getStoredSorceryResources(): {
           water: parsed.elementImages?.water || DEFAULT_SORCERY_CONFIG.threshold.elementImages.water,
           earth: parsed.elementImages?.earth || DEFAULT_SORCERY_CONFIG.threshold.elementImages.earth,
           air: parsed.elementImages?.air || DEFAULT_SORCERY_CONFIG.threshold.elementImages.air,
+          espirito: parsed.elementImages?.espirito || DEFAULT_SORCERY_CONFIG.threshold.elementImages.espirito,
           materia: parsed.elementImages?.materia || DEFAULT_SORCERY_CONFIG.threshold.elementImages.materia,
           vazio: parsed.elementImages?.vazio || DEFAULT_SORCERY_CONFIG.threshold.elementImages.vazio,
           vida: parsed.elementImages?.vida || DEFAULT_SORCERY_CONFIG.threshold.elementImages.vida,
@@ -1420,6 +1451,7 @@ export function getStoredSorceryConfig(cardType?: import('./cardType').CardTypeI
             }
             return current;
           })(),
+          espirito: parsed.threshold?.espirito || 0,
           materia: parsed.threshold?.materia || 0,
           vazio: parsed.threshold?.vazio || 0,
           vida: parsed.threshold?.vida || 0,
@@ -1536,6 +1568,7 @@ export function createNewCardSorceryConfig(
       earth: 0,
       fire: 0,
       water: 0,
+      espirito: 0,
       materia: 0,
       vazio: 0,
       vida: 0,
@@ -1586,6 +1619,7 @@ export function resetVisualsToPermanentDefaults(
       water: current.threshold.water,
       earth: current.threshold.earth,
       air: current.threshold.air,
+      espirito: current.threshold.espirito || 0,
       materia: current.threshold.materia || 0,
       vazio: current.threshold.vazio || 0,
       vida: current.threshold.vida || 0,

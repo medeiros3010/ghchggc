@@ -237,9 +237,8 @@ export async function exportCardToPng(
             sorceryConfig.threshold.elementImages
           );
           const itemImg = await loadImage(itemImgSrc);
-          const ix =
-            ((sorceryConfig.threshold.xPercent + idx * (symWidthPercent + gapXPercent)) / 100) *
-            targetWidth;
+          // O primeiro símbolo (idx=0) fica na âncora à direita, e os adicionais à esquerda
+          const ix = (item.xPercent / 100) * targetWidth;
 
           ctx.save();
           ctx.globalAlpha = sorceryConfig.threshold.opacity ?? 1.0;
