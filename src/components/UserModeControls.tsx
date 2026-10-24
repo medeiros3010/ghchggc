@@ -64,6 +64,8 @@ import {
   ChevronDown,
   ChevronUp,
   Move,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 import { TextSymbolsMenu } from './TextSymbolsMenu';
 import { insertSymbolIntoInputElement } from '../utils/textSymbols';
@@ -1987,6 +1989,224 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
                 />
               </div>
             </div>
+
+            {/* Posicionamento Livre e Zoom da Ilustração (Inspirado no Sorcerer's Spellbook) */}
+            {artConfig.imageUrl && (
+              <div className="bg-[#302D27] p-3.5 rounded-lg border border-[#65543C] space-y-3.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <Move className="w-3.5 h-3.5 text-[#C5A675]" />
+                    <span className="text-xs font-semibold text-[#E8DECA] block font-arcane">
+                      Posicionamento & Zoom
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onUpdateArtConfig({ offsetXPercent: 0, offsetYPercent: 0, scale: 1.0 })}
+                    title="Restaurar enquadramento original (X: 0%, Y: 0%, Zoom: 100%)"
+                    className="flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-[#C5A675] hover:text-[#E8DECA] bg-[#24221E] hover:bg-[#34352D] rounded border border-[#65543C] hover:border-[#C5A675] transition-colors cursor-pointer"
+                  >
+                    <RotateCcw className="w-3 h-3" />
+                    <span>Restaurar</span>
+                  </button>
+                </div>
+
+                {/* Controle de Zoom / Escala */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-[#B5A995] flex items-center gap-1">
+                      <ZoomIn className="w-3 h-3 text-[#C5A675]" />
+                      Zoom / Escala:
+                    </span>
+                    <span className="font-mono text-[#E8DECA] font-semibold bg-[#24221E] px-1.5 py-0.5 rounded border border-[#453B2D]">
+                      {Math.round((artConfig.scale ?? 1.0) * 100)}%
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const cur = artConfig.scale ?? 1.0;
+                        onUpdateArtConfig({ scale: Math.max(0.2, Math.round((cur - 0.1) * 100) / 100) });
+                      }}
+                      className="w-7 h-7 flex items-center justify-center rounded bg-[#24221E] border border-[#453B2D] hover:border-[#C5A675] text-[#E8DECA] hover:text-[#FAF5E9] text-xs font-bold cursor-pointer"
+                      title="Diminuir Zoom (-10%)"
+                    >
+                      -
+                    </button>
+                    <input
+                      type="range"
+                      min="0.2"
+                      max="4.0"
+                      step="0.05"
+                      value={artConfig.scale ?? 1.0}
+                      onChange={(e) => onUpdateArtConfig({ scale: parseFloat(e.target.value) })}
+                      className="flex-1 accent-[#C5A675] cursor-pointer"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const cur = artConfig.scale ?? 1.0;
+                        onUpdateArtConfig({ scale: Math.min(4.0, Math.round((cur + 0.1) * 100) / 100) });
+                      }}
+                      className="w-7 h-7 flex items-center justify-center rounded bg-[#24221E] border border-[#453B2D] hover:border-[#C5A675] text-[#E8DECA] hover:text-[#FAF5E9] text-xs font-bold cursor-pointer"
+                      title="Aumentar Zoom (+10%)"
+                    >
+                      +
+                    </button>
+                  </div>
+
+                  {/* Atalhos Rápidos de Zoom */}
+                  <div className="grid grid-cols-4 gap-1 pt-1">
+                    {[1.0, 1.25, 1.5, 2.0].map((presetScale) => (
+                      <button
+                        key={presetScale}
+                        type="button"
+                        onClick={() => onUpdateArtConfig({ scale: presetScale })}
+                        className={`py-1 text-[10px] font-mono rounded border transition-colors cursor-pointer ${
+                          Math.abs((artConfig.scale ?? 1.0) - presetScale) < 0.02
+                            ? 'bg-[#24221E] border-[#C5A675] text-[#C5A675] font-bold'
+                            : 'bg-[#24221E] border-[#453B2D] text-[#B5A995] hover:text-[#E8DECA]'
+                        }`}
+                      >
+                        {presetScale * 100}%
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Posição Horizontal (Eixo X) */}
+                <div className="space-y-1.5 pt-2 border-t border-[#453B2D]">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-[#B5A995]">Posição Horizontal (X):</span>
+                    <div className="flex items-center gap-1">
+                      <span className="font-mono text-[#E8DECA] font-semibold bg-[#24221E] px-1.5 py-0.5 rounded border border-[#453B2D]">
+                        {(artConfig.offsetXPercent ?? 0) > 0 ? `+${artConfig.offsetXPercent}` : artConfig.offsetXPercent ?? 0}%
+                      </span>
+                    </div>
+                  </div>
+
+                  <input
+                    type="range"
+                    min="-100"
+                    max="100"
+                    step="1"
+                    value={artConfig.offsetXPercent ?? 0}
+                    onChange={(e) => onUpdateArtConfig({ offsetXPercent: parseFloat(e.target.value) })}
+                    className="w-full accent-[#C5A675] cursor-pointer"
+                  />
+
+                  {/* Botões de ajuste fino X */}
+                  <div className="flex items-center justify-between gap-1">
+                    <button
+                      type="button"
+                      onClick={() => onUpdateArtConfig({ offsetXPercent: Math.max(-100, (artConfig.offsetXPercent ?? 0) - 5) })}
+                      className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-[#24221E] border border-[#453B2D] hover:border-[#65543C] text-[#B5A995] hover:text-[#E8DECA] cursor-pointer"
+                    >
+                      -5%
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onUpdateArtConfig({ offsetXPercent: Math.max(-100, (artConfig.offsetXPercent ?? 0) - 1) })}
+                      className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-[#24221E] border border-[#453B2D] hover:border-[#65543C] text-[#B5A995] hover:text-[#E8DECA] cursor-pointer"
+                    >
+                      -1%
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onUpdateArtConfig({ offsetXPercent: 0 })}
+                      className="px-2 py-0.5 text-[10px] font-mono rounded bg-[#24221E] border border-[#453B2D] hover:border-[#C5A675] text-[#C5A675] cursor-pointer"
+                    >
+                      Centro X
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onUpdateArtConfig({ offsetXPercent: Math.min(100, (artConfig.offsetXPercent ?? 0) + 1) })}
+                      className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-[#24221E] border border-[#453B2D] hover:border-[#65543C] text-[#B5A995] hover:text-[#E8DECA] cursor-pointer"
+                    >
+                      +1%
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onUpdateArtConfig({ offsetXPercent: Math.min(100, (artConfig.offsetXPercent ?? 0) + 5) })}
+                      className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-[#24221E] border border-[#453B2D] hover:border-[#65543C] text-[#B5A995] hover:text-[#E8DECA] cursor-pointer"
+                    >
+                      +5%
+                    </button>
+                  </div>
+                </div>
+
+                {/* Posição Vertical (Eixo Y) */}
+                <div className="space-y-1.5 pt-2 border-t border-[#453B2D]">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-[#B5A995]">Posição Vertical (Y):</span>
+                    <div className="flex items-center gap-1">
+                      <span className="font-mono text-[#E8DECA] font-semibold bg-[#24221E] px-1.5 py-0.5 rounded border border-[#453B2D]">
+                        {(artConfig.offsetYPercent ?? 0) > 0 ? `+${artConfig.offsetYPercent}` : artConfig.offsetYPercent ?? 0}%
+                      </span>
+                    </div>
+                  </div>
+
+                  <input
+                    type="range"
+                    min="-100"
+                    max="100"
+                    step="1"
+                    value={artConfig.offsetYPercent ?? 0}
+                    onChange={(e) => onUpdateArtConfig({ offsetYPercent: parseFloat(e.target.value) })}
+                    className="w-full accent-[#C5A675] cursor-pointer"
+                  />
+
+                  {/* Botões de ajuste fino Y */}
+                  <div className="flex items-center justify-between gap-1">
+                    <button
+                      type="button"
+                      onClick={() => onUpdateArtConfig({ offsetYPercent: Math.max(-100, (artConfig.offsetYPercent ?? 0) - 5) })}
+                      className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-[#24221E] border border-[#453B2D] hover:border-[#65543C] text-[#B5A995] hover:text-[#E8DECA] cursor-pointer"
+                    >
+                      -5%
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onUpdateArtConfig({ offsetYPercent: Math.max(-100, (artConfig.offsetYPercent ?? 0) - 1) })}
+                      className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-[#24221E] border border-[#453B2D] hover:border-[#65543C] text-[#B5A995] hover:text-[#E8DECA] cursor-pointer"
+                    >
+                      -1%
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onUpdateArtConfig({ offsetYPercent: 0 })}
+                      className="px-2 py-0.5 text-[10px] font-mono rounded bg-[#24221E] border border-[#453B2D] hover:border-[#C5A675] text-[#C5A675] cursor-pointer"
+                    >
+                      Centro Y
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onUpdateArtConfig({ offsetYPercent: Math.min(100, (artConfig.offsetYPercent ?? 0) + 1) })}
+                      className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-[#24221E] border border-[#453B2D] hover:border-[#65543C] text-[#B5A995] hover:text-[#E8DECA] cursor-pointer"
+                    >
+                      +1%
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onUpdateArtConfig({ offsetYPercent: Math.min(100, (artConfig.offsetYPercent ?? 0) + 5) })}
+                      className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-[#24221E] border border-[#453B2D] hover:border-[#65543C] text-[#B5A995] hover:text-[#E8DECA] cursor-pointer"
+                    >
+                      +5%
+                    </button>
+                  </div>
+                </div>
+
+                {/* Dica de Interação Direta */}
+                <div className="p-2.5 rounded bg-[#24221E] border border-[#453B2D] text-[11px] text-[#B5A995] flex items-start gap-2">
+                  <Info className="w-3.5 h-3.5 text-[#C5A675] shrink-0 mt-0.5" />
+                  <p className="leading-snug">
+                    <strong className="text-[#E8DECA]">Interação direta:</strong> Você pode clicar e arrastar a imagem diretamente dentro da carta para ajustar o enquadramento, ou girar a roda do mouse (scroll) sobre ela para dar zoom.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* MOLDURA DA CARTA (CARDFRAME / ATRIBUTOS ANCESTRAIS) */}
             <div className="bg-[#302D27] border border-[#65543C] rounded-lg p-3.5 space-y-3">

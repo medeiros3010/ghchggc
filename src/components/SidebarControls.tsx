@@ -79,6 +79,9 @@ import {
   AlignRight,
   Maximize2,
   Minimize2,
+  ZoomIn,
+  ZoomOut,
+  Info,
 } from 'lucide-react';
 import { calculateAutoFitFontSize } from '../utils/textFit';
 import { TextSymbolsMenu } from './TextSymbolsMenu';
@@ -4326,6 +4329,237 @@ export const SidebarControls: React.FC<SidebarControlsProps> = ({
                   <option value="fill">Esticar na Área (Fill)</option>
                 </select>
               </div>
+
+              {/* Opacidade */}
+              <div>
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-slate-600">Opacidade:</span>
+                  <span className="font-mono text-slate-800 font-semibold">
+                    {Math.round((artConfig.opacity ?? 1) * 100)}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={artConfig.opacity ?? 1}
+                  onChange={(e) => onUpdateArtConfig({ opacity: parseFloat(e.target.value) })}
+                  className="w-full accent-blue-600 cursor-pointer"
+                />
+              </div>
+
+              {/* Posicionamento Livre e Zoom da Ilustração (Inspirado no Sorcerer's Spellbook) */}
+              {artConfig.imageUrl && (
+                <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <Move className="w-3.5 h-3.5 text-blue-600" />
+                      <span className="text-xs font-bold text-slate-800 block">
+                        Posicionamento & Zoom Livre
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => onUpdateArtConfig({ offsetXPercent: 0, offsetYPercent: 0, scale: 1.0 })}
+                      title="Restaurar enquadramento inicial (X: 0%, Y: 0%, Zoom: 100%)"
+                      className="flex items-center gap-1 px-2 py-0.5 text-[11px] font-medium text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-100 rounded border border-slate-200 hover:border-slate-300 transition-colors cursor-pointer"
+                    >
+                      <RotateCcw className="w-3 h-3 text-slate-500" />
+                      <span>Restaurar</span>
+                    </button>
+                  </div>
+
+                  {/* Controle de Zoom / Escala */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-600 flex items-center gap-1">
+                        <ZoomIn className="w-3 h-3 text-blue-600" />
+                        Zoom / Escala:
+                      </span>
+                      <span className="font-mono text-slate-800 font-semibold bg-white px-1.5 py-0.5 rounded border border-slate-200">
+                        {Math.round((artConfig.scale ?? 1.0) * 100)}%
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const cur = artConfig.scale ?? 1.0;
+                          onUpdateArtConfig({ scale: Math.max(0.2, Math.round((cur - 0.1) * 100) / 100) });
+                        }}
+                        className="w-7 h-7 flex items-center justify-center rounded bg-white border border-slate-200 hover:border-slate-300 text-slate-700 text-xs font-bold cursor-pointer"
+                        title="Diminuir Zoom (-10%)"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="range"
+                        min="0.2"
+                        max="4.0"
+                        step="0.05"
+                        value={artConfig.scale ?? 1.0}
+                        onChange={(e) => onUpdateArtConfig({ scale: parseFloat(e.target.value) })}
+                        className="flex-1 accent-blue-600 cursor-pointer"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const cur = artConfig.scale ?? 1.0;
+                          onUpdateArtConfig({ scale: Math.min(4.0, Math.round((cur + 0.1) * 100) / 100) });
+                        }}
+                        className="w-7 h-7 flex items-center justify-center rounded bg-white border border-slate-200 hover:border-slate-300 text-slate-700 text-xs font-bold cursor-pointer"
+                        title="Aumentar Zoom (+10%)"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    {/* Presets Rápidos de Zoom */}
+                    <div className="grid grid-cols-4 gap-1">
+                      {[1.0, 1.25, 1.5, 2.0].map((presetScale) => (
+                        <button
+                          key={presetScale}
+                          type="button"
+                          onClick={() => onUpdateArtConfig({ scale: presetScale })}
+                          className={`py-1 text-[10px] font-mono rounded border transition-colors cursor-pointer ${
+                            Math.abs((artConfig.scale ?? 1.0) - presetScale) < 0.02
+                              ? 'bg-blue-50 border-blue-500 text-blue-700 font-bold'
+                              : 'bg-white border-slate-200 text-slate-600 hover:text-slate-800'
+                          }`}
+                        >
+                          {presetScale * 100}%
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Posição Horizontal X */}
+                  <div className="space-y-1.5 pt-2 border-t border-slate-200">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-600">Posição Horizontal (X):</span>
+                      <span className="font-mono text-slate-800 font-semibold bg-white px-1.5 py-0.5 rounded border border-slate-200">
+                        {(artConfig.offsetXPercent ?? 0) > 0 ? `+${artConfig.offsetXPercent}` : artConfig.offsetXPercent ?? 0}%
+                      </span>
+                    </div>
+
+                    <input
+                      type="range"
+                      min="-100"
+                      max="100"
+                      step="1"
+                      value={artConfig.offsetXPercent ?? 0}
+                      onChange={(e) => onUpdateArtConfig({ offsetXPercent: parseFloat(e.target.value) })}
+                      className="w-full accent-blue-600 cursor-pointer"
+                    />
+
+                    <div className="flex items-center justify-between gap-1">
+                      <button
+                        type="button"
+                        onClick={() => onUpdateArtConfig({ offsetXPercent: Math.max(-100, (artConfig.offsetXPercent ?? 0) - 5) })}
+                        className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-white border border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-900 cursor-pointer"
+                      >
+                        -5%
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onUpdateArtConfig({ offsetXPercent: Math.max(-100, (artConfig.offsetXPercent ?? 0) - 1) })}
+                        className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-white border border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-900 cursor-pointer"
+                      >
+                        -1%
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onUpdateArtConfig({ offsetXPercent: 0 })}
+                        className="px-2 py-0.5 text-[10px] font-mono rounded bg-white border border-slate-200 hover:border-blue-400 text-blue-600 font-semibold cursor-pointer"
+                      >
+                        Centro X
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onUpdateArtConfig({ offsetXPercent: Math.min(100, (artConfig.offsetXPercent ?? 0) + 1) })}
+                        className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-white border border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-900 cursor-pointer"
+                      >
+                        +1%
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onUpdateArtConfig({ offsetXPercent: Math.min(100, (artConfig.offsetXPercent ?? 0) + 5) })}
+                        className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-white border border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-900 cursor-pointer"
+                      >
+                        +5%
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Posição Vertical Y */}
+                  <div className="space-y-1.5 pt-2 border-t border-slate-200">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-600">Posição Vertical (Y):</span>
+                      <span className="font-mono text-slate-800 font-semibold bg-white px-1.5 py-0.5 rounded border border-slate-200">
+                        {(artConfig.offsetYPercent ?? 0) > 0 ? `+${artConfig.offsetYPercent}` : artConfig.offsetYPercent ?? 0}%
+                      </span>
+                    </div>
+
+                    <input
+                      type="range"
+                      min="-100"
+                      max="100"
+                      step="1"
+                      value={artConfig.offsetYPercent ?? 0}
+                      onChange={(e) => onUpdateArtConfig({ offsetYPercent: parseFloat(e.target.value) })}
+                      className="w-full accent-blue-600 cursor-pointer"
+                    />
+
+                    <div className="flex items-center justify-between gap-1">
+                      <button
+                        type="button"
+                        onClick={() => onUpdateArtConfig({ offsetYPercent: Math.max(-100, (artConfig.offsetYPercent ?? 0) - 5) })}
+                        className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-white border border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-900 cursor-pointer"
+                      >
+                        -5%
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onUpdateArtConfig({ offsetYPercent: Math.max(-100, (artConfig.offsetYPercent ?? 0) - 1) })}
+                        className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-white border border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-900 cursor-pointer"
+                      >
+                        -1%
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onUpdateArtConfig({ offsetYPercent: 0 })}
+                        className="px-2 py-0.5 text-[10px] font-mono rounded bg-white border border-slate-200 hover:border-blue-400 text-blue-600 font-semibold cursor-pointer"
+                      >
+                        Centro Y
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onUpdateArtConfig({ offsetYPercent: Math.min(100, (artConfig.offsetYPercent ?? 0) + 1) })}
+                        className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-white border border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-900 cursor-pointer"
+                      >
+                        +1%
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onUpdateArtConfig({ offsetYPercent: Math.min(100, (artConfig.offsetYPercent ?? 0) + 5) })}
+                        className="px-1.5 py-0.5 text-[10px] font-mono rounded bg-white border border-slate-200 hover:border-slate-300 text-slate-600 hover:text-slate-900 cursor-pointer"
+                      >
+                        +5%
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Informação */}
+                  <div className="p-2 rounded bg-white border border-slate-200 text-[11px] text-slate-500 flex items-start gap-1.5">
+                    <Info className="w-3.5 h-3.5 text-blue-500 shrink-0 mt-0.5" />
+                    <span>
+                      Você também pode clicar e arrastar a imagem diretamente na carta, ou usar o scroll do mouse para ajustar o zoom.
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* 3. Formato e Dimensões Físicas */}

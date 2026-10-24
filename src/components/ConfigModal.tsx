@@ -51,6 +51,9 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
       frameTopPercent: artConfig.frameTopPercent,
       frameHeightPercent: artConfig.frameHeightPercent,
       frameMarginPercent: artConfig.frameMarginPercent,
+      scale: artConfig.scale ?? 1,
+      offsetXPercent: artConfig.offsetXPercent ?? 0,
+      offsetYPercent: artConfig.offsetYPercent ?? 0,
     },
     cardFrame: {
       hasImage: !!frameConfig.imageUrl,

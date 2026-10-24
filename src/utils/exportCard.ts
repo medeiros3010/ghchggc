@@ -105,16 +105,19 @@ export async function exportCardToPng(
         const frameH = (artConfig.frameHeightPercent / 100) * targetHeight;
 
         // Clip no retângulo da moldura
+        ctx.save();
         ctx.beginPath();
         ctx.rect(frameX, frameY, frameW, frameH);
         ctx.clip();
         drawCoverImage(ctx, img, frameX, frameY, frameW, frameH, artConfig.fit, artScale, artOffsetX, artOffsetY);
         ctx.restore();
 
-        // Moldura wireframe ao redor da arte
-        ctx.strokeStyle = '#94a3b8';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(frameX, frameY, frameW, frameH);
+        // Moldura wireframe ao redor da arte (apenas se não houver cardframe carregado)
+        if (!frameConfig?.imageUrl) {
+          ctx.strokeStyle = '#94a3b8';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(frameX, frameY, frameW, frameH);
+        }
       }
       ctx.restore();
     } catch {

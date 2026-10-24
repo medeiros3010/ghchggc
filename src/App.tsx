@@ -1037,14 +1037,16 @@ export default function App() {
   const handleImportConfig = (data: {
     dimensions?: CardDimensionsConfig;
     artConfig?: CardArtConfig;
+    artLayout?: Partial<CardArtConfig>;
     frameConfig?: CardFrameConfig;
     symbolsConfig?: CardSymbolsConfig;
     textBoxes?: TextBoxConfig[];
   }) => {
+    const incomingArt = data.artConfig || data.artLayout;
     updateActiveCardState((state) => ({
       ...state,
       dimensions: data.dimensions || state.dimensions,
-      artConfig: data.artConfig ? { ...state.artConfig, ...data.artConfig } : state.artConfig,
+      artConfig: incomingArt ? { ...state.artConfig, ...incomingArt } : state.artConfig,
       frameConfig: data.frameConfig ? { ...state.frameConfig, ...data.frameConfig } : state.frameConfig,
       symbolsConfig: data.symbolsConfig
         ? {
@@ -1538,6 +1540,7 @@ export default function App() {
             onUpdateTextBox={handleUpdateTextBox}
             onUploadImage={handleUploadImage}
             onUploadCardFrame={handleUploadCardFrame}
+            onUpdateArtConfig={handleUpdateArtConfig}
             showGuides={editorMode === 'admin' ? showGuides : false}
             isEditMode={editorMode === 'admin' ? isEditMode : false}
             zoom={zoom}

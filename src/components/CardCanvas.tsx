@@ -370,9 +370,39 @@ export const CardCanvas: React.FC<CardCanvasProps> = ({
             yPercent: Math.round(newY * 10) / 10,
           });
         }
+      } else if (dragState.targetKind === 'art' && onUpdateArtConfig) {
+        if (dragState.type === 'move') {
+          let artWidthPx = rect.width;
+          let artHeightPx = rect.height;
+
+          if (artContainerRef.current) {
+            const artRect = artContainerRef.current.getBoundingClientRect();
+            if (artRect.width > 0 && artRect.height > 0) {
+              artWidthPx = artRect.width;
+              artHeightPx = artRect.height;
+            }
+          } else if (artConfig.mode === 'framed') {
+            artWidthPx = rect.width * ((100 - artConfig.frameMarginPercent * 2) / 100);
+            artHeightPx = rect.height * (artConfig.frameHeightPercent / 100);
+          }
+
+          const deltaXPercent = ((e.clientX - dragState.startX) / artWidthPx) * 100;
+          const deltaYPercent = ((e.clientY - dragState.startY) / artHeightPx) * 100;
+
+          const newX = Math.round((dragState.initialXPercent + deltaXPercent) * 10) / 10;
+          const newY = Math.round((dragState.initialYPercent + deltaYPercent) * 10) / 10;
+
+          const clampedX = Math.max(-150, Math.min(150, newX));
+          const clampedY = Math.max(-150, Math.min(150, newY));
+
+          onUpdateArtConfig({
+            offsetXPercent: clampedX,
+            offsetYPercent: clampedY,
+          });
+        }
       }
     },
-    [dragState, onUpdateTextBox, onUpdateSorceryCombat, onUpdateSorceryThreshold, sorceryConfig]
+    [dragState, onUpdateTextBox, onUpdateSorceryCombat, onUpdateSorceryThreshold, onUpdateArtConfig, sorceryConfig, artConfig]
   );
 
   const handlePointerUp = useCallback(() => {
@@ -389,6 +419,26 @@ export const CardCanvas: React.FC<CardCanvasProps> = ({
       };
     }
   }, [dragState, handlePointerMove, handlePointerUp]);
+
+  // Zoom fluido com a roda do mouse sobre a área da ilustração
+  useEffect(() => {
+    const el = artContainerRef.current;
+    if (!el || !artConfig.imageUrl || !onUpdateArtConfig) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const currentScale = artConfig.scale ?? 1.0;
+      const step = e.deltaY < 0 ? 0.05 : -0.05;
+      const nextScale = Math.max(0.2, Math.min(4.0, Math.round((currentScale + step) * 100) / 100));
+      onUpdateArtConfig({ scale: nextScale });
+    };
+
+    el.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      el.removeEventListener('wheel', handleWheel);
+    };
+  }, [artConfig.imageUrl, artConfig.scale, onUpdateArtConfig]);
 
   // Upload por arrastar e soltar (drag & drop direto na carta)
   const handleDrop = (e: React.DragEvent) => {
@@ -465,17 +515,45 @@ export const CardCanvas: React.FC<CardCanvasProps> = ({
 
           {/* CAMADA 2: ARTE FRONTAL (Upload de Imagem ou Wireframe) */}
           {artConfig.mode === 'full-bleed' ? (
-            <div className="absolute inset-0 z-0 bg-[#24221E] flex items-center justify-center">
+            <div
+              ref={artContainerRef}
+              onPointerDown={artConfig.imageUrl ? handleStartMoveArt : undefined}
+              className={`absolute inset-0 z-0 bg-[#24221E] flex items-center justify-center overflow-hidden group ${
+                artConfig.imageUrl ? 'cursor-grab active:cursor-grabbing' : ''
+              }`}
+            >
               {artConfig.imageUrl ? (
-                <img
-                  src={artConfig.imageUrl}
-                  alt="Arte Frontal da Carta"
-                  style={{
-                    opacity: artConfig.opacity,
-                    objectFit: artConfig.fit,
-                  }}
-                  className="w-full h-full pointer-events-none"
-                />
+                <>
+                  <img
+                    src={artConfig.imageUrl}
+                    alt="Arte Frontal da Carta"
+                    draggable={false}
+                    style={{
+                      opacity: artConfig.opacity,
+                      objectFit: artConfig.fit,
+                      transform: `translate(${artConfig.offsetXPercent ?? 0}%, ${artConfig.offsetYPercent ?? 0}%) scale(${artConfig.scale ?? 1})`,
+                      transformOrigin: 'center center',
+                      willChange: 'transform',
+                    }}
+                    className="w-full h-full pointer-events-none select-none transition-none"
+                  />
+                  {/* Indicador sutil de posicionamento e zoom */}
+                  <div
+                    className={`absolute bottom-2 right-2 pointer-events-none transition-opacity duration-200 z-10 flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-medium bg-[#1A1916]/85 text-[#E8DECA] border border-[#65543C] shadow-md backdrop-blur-xs ${
+                      dragState?.targetKind === 'art'
+                        ? 'opacity-100 ring-1 ring-[#C5A675]'
+                        : 'opacity-0 group-hover:opacity-100'
+                    }`}
+                  >
+                    <Move className="w-2.5 h-2.5 text-[#C5A675]" />
+                    <span className="font-mono text-[#C5A675]">{Math.round((artConfig.scale ?? 1) * 100)}%</span>
+                    {((artConfig.offsetXPercent ?? 0) !== 0 || (artConfig.offsetYPercent ?? 0) !== 0) && (
+                      <span className="text-[9px] font-mono text-[#B5A995]">
+                        ({artConfig.offsetXPercent ?? 0}%, {artConfig.offsetYPercent ?? 0}%)
+                      </span>
+                    )}
+                  </div>
+                </>
               ) : (
                 <div
                   onClick={(e) => {
@@ -494,24 +572,50 @@ export const CardCanvas: React.FC<CardCanvasProps> = ({
             </div>
           ) : (
             <div
+              ref={artContainerRef}
+              onPointerDown={artConfig.imageUrl ? handleStartMoveArt : undefined}
               style={{
                 top: `${artConfig.frameTopPercent}%`,
                 left: `${artConfig.frameMarginPercent}%`,
                 right: `${artConfig.frameMarginPercent}%`,
                 height: `${artConfig.frameHeightPercent}%`,
               }}
-              className="absolute z-0 bg-[#24221E] border border-[#65543C] overflow-hidden rounded-md flex items-center justify-center shadow-inner"
+              className={`absolute z-0 bg-[#24221E] border border-[#65543C] overflow-hidden rounded-md flex items-center justify-center shadow-inner group ${
+                artConfig.imageUrl ? 'cursor-grab active:cursor-grabbing' : ''
+              }`}
             >
               {artConfig.imageUrl ? (
-                <img
-                  src={artConfig.imageUrl}
-                  alt="Arte Frontal da Carta"
-                  style={{
-                    opacity: artConfig.opacity,
-                    objectFit: artConfig.fit,
-                  }}
-                  className="w-full h-full pointer-events-none"
-                />
+                <>
+                  <img
+                    src={artConfig.imageUrl}
+                    alt="Arte Frontal da Carta"
+                    draggable={false}
+                    style={{
+                      opacity: artConfig.opacity,
+                      objectFit: artConfig.fit,
+                      transform: `translate(${artConfig.offsetXPercent ?? 0}%, ${artConfig.offsetYPercent ?? 0}%) scale(${artConfig.scale ?? 1})`,
+                      transformOrigin: 'center center',
+                      willChange: 'transform',
+                    }}
+                    className="w-full h-full pointer-events-none select-none transition-none"
+                  />
+                  {/* Indicador sutil de posicionamento e zoom */}
+                  <div
+                    className={`absolute bottom-2 right-2 pointer-events-none transition-opacity duration-200 z-10 flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-medium bg-[#1A1916]/85 text-[#E8DECA] border border-[#65543C] shadow-md backdrop-blur-xs ${
+                      dragState?.targetKind === 'art'
+                        ? 'opacity-100 ring-1 ring-[#C5A675]'
+                        : 'opacity-0 group-hover:opacity-100'
+                    }`}
+                  >
+                    <Move className="w-2.5 h-2.5 text-[#C5A675]" />
+                    <span className="font-mono text-[#C5A675]">{Math.round((artConfig.scale ?? 1) * 100)}%</span>
+                    {((artConfig.offsetXPercent ?? 0) !== 0 || (artConfig.offsetYPercent ?? 0) !== 0) && (
+                      <span className="text-[9px] font-mono text-[#B5A995]">
+                        ({artConfig.offsetXPercent ?? 0}%, {artConfig.offsetYPercent ?? 0}%)
+                      </span>
+                    )}
+                  </div>
+                </>
               ) : (
                 <div
                   onClick={(e) => {

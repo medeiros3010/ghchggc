@@ -38,6 +38,9 @@ export interface CardLayoutPreset {
     frameTopPercent: number;
     frameHeightPercent: number;
     frameMarginPercent: number;
+    scale?: number;
+    offsetXPercent?: number;
+    offsetYPercent?: number;
   };
 
   // 3. Cardframe / Moldura com imagem incorporada (Base64/SVG)

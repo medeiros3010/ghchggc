@@ -524,6 +524,9 @@ export function createPresetFromState(params: {
     frameTopPercent: params.artConfig.frameTopPercent,
     frameHeightPercent: params.artConfig.frameHeightPercent,
     frameMarginPercent: params.artConfig.frameMarginPercent,
+    scale: params.artConfig.scale ?? 1,
+    offsetXPercent: params.artConfig.offsetXPercent ?? 0,
+    offsetYPercent: params.artConfig.offsetYPercent ?? 0,
   };
 
   // 2. Extração de fontes utilizadas
@@ -641,6 +644,9 @@ export function exportPresetAsJson(preset: CardLayoutPreset): void {
       frameTopPercent: preset.artLayout.frameTopPercent,
       frameHeightPercent: preset.artLayout.frameHeightPercent,
       frameMarginPercent: preset.artLayout.frameMarginPercent,
+      scale: preset.artLayout.scale ?? 1,
+      offsetXPercent: preset.artLayout.offsetXPercent ?? 0,
+      offsetYPercent: preset.artLayout.offsetYPercent ?? 0,
     },
     frameConfig: preset.frameConfig,
     symbolsConfig: preset.symbolsConfig,
@@ -722,6 +728,9 @@ export function parseAndValidatePresetFile(
         frameTopPercent: typeof artLayout.frameTopPercent === 'number' ? artLayout.frameTopPercent : 13,
         frameHeightPercent: typeof artLayout.frameHeightPercent === 'number' ? artLayout.frameHeightPercent : 41,
         frameMarginPercent: typeof artLayout.frameMarginPercent === 'number' ? artLayout.frameMarginPercent : 6,
+        scale: typeof artLayout.scale === 'number' ? artLayout.scale : 1,
+        offsetXPercent: typeof artLayout.offsetXPercent === 'number' ? artLayout.offsetXPercent : 0,
+        offsetYPercent: typeof artLayout.offsetYPercent === 'number' ? artLayout.offsetYPercent : 0,
       },
       frameConfig: {
         imageUrl: frameConfig.imageUrl || null,
