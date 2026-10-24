@@ -142,63 +142,70 @@ export async function exportCardToPng(
     }
   }
 
-  // 4A. Renderizar Indicador Fixo de Mana Sorcery (Site não possui custo de Mana)
-  if (cardType !== 'site' && sorceryConfig?.mana && sorceryConfig.mana.isVisible) {
-    try {
-      const manaImg = await loadImage(sorceryConfig.mana.imageUrl || '/assets/sorcery/mana.png?v=2');
-      const manaScale = sorceryConfig.mana.scale || 1.0;
-      const baseMx = (sorceryConfig.mana.xPercent / 100) * targetWidth;
-      const baseMy = (sorceryConfig.mana.yPercent / 100) * targetHeight;
-      const baseMw = (sorceryConfig.mana.widthPercent / 100) * targetWidth;
-      const baseMh = (sorceryConfig.mana.heightPercent / 100) * targetHeight;
+  // 4A. Renderizar Indicador Fixo de Mana Sorcery / Vida no Avatar (Site não possui custo de Mana)
+  if (cardType !== 'site') {
+    const isAvatar = cardType === 'avatar';
+    const attrConfig = isAvatar ? (sorceryConfig?.vida || sorceryConfig?.mana) : sorceryConfig?.mana;
+    if (attrConfig && attrConfig.isVisible) {
+      try {
+        const iconSrc = isAvatar
+          ? (attrConfig.imageUrl || '/assets/sorcery/vida(1).png')
+          : (attrConfig.imageUrl || '/assets/sorcery/mana.png?v=2');
+        const manaImg = await loadImage(iconSrc);
+        const manaScale = attrConfig.scale || 1.0;
+        const baseMx = (attrConfig.xPercent / 100) * targetWidth;
+        const baseMy = (attrConfig.yPercent / 100) * targetHeight;
+        const baseMw = (attrConfig.widthPercent / 100) * targetWidth;
+        const baseMh = (attrConfig.heightPercent / 100) * targetHeight;
 
-      // Transformação proporcional com ponto de ancoragem no centro (transform-origin: center center)
-      const centerX = baseMx + baseMw / 2;
-      const centerY = baseMy + baseMh / 2;
-      const scaledMw = baseMw * manaScale;
-      const scaledMh = baseMh * manaScale;
-      const scaledMx = centerX - scaledMw / 2;
-      const scaledMy = centerY - scaledMh / 2;
+        // Transformação proporcional com ponto de ancoragem no centro (transform-origin: center center)
+        const centerX = baseMx + baseMw / 2;
+        const centerY = baseMy + baseMh / 2;
+        const scaledMw = baseMw * manaScale;
+        const scaledMh = baseMh * manaScale;
+        const scaledMx = centerX - scaledMw / 2;
+        const scaledMy = centerY - scaledMh / 2;
 
-      ctx.save();
-      ctx.globalAlpha = sorceryConfig.mana.opacity;
-      if (sorceryConfig.mana.keepAspectRatio) {
-        drawCoverImage(ctx, manaImg, scaledMx, scaledMy, scaledMw, scaledMh, 'contain');
-      } else {
-        ctx.drawImage(manaImg, scaledMx, scaledMy, scaledMw, scaledMh);
+        ctx.save();
+        ctx.globalAlpha = attrConfig.opacity;
+        if (attrConfig.keepAspectRatio) {
+          drawCoverImage(ctx, manaImg, scaledMx, scaledMy, scaledMw, scaledMh, 'contain');
+        } else {
+          ctx.drawImage(manaImg, scaledMx, scaledMy, scaledMw, scaledMh);
+        }
+
+        // Desenhar o número de Mana / Vida centralizado sobre a esfera/gota
+        const numStr = String(attrConfig.quantity ?? (isAvatar ? 20 : 0));
+        const fontSize = Math.max(8, Math.round((attrConfig.fontSizePx || 20) * scale * manaScale));
+        const fontDef = AVAILABLE_FONTS.find((f) => f.id === attrConfig.fontFamily);
+        const cssFontFamily = fontDef ? fontDef.cssFamily : "'Morpheus', Georgia, serif";
+        ctx.font = `bold ${fontSize}px ${cssFontFamily}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'alphabetic';
+        const textX = centerX + (attrConfig.textOffsetX || 0) * scale * manaScale;
+        const textY = centerY + (attrConfig.textOffsetY || 0) * scale * manaScale;
+
+        // Alinhamento vertical fiel ao layout CSS (line-height: 1 centralizado verticalmente)
+        const manaMetrics = ctx.measureText(numStr);
+        const manaAscent = manaMetrics.fontBoundingBoxAscent ?? manaMetrics.actualBoundingBoxAscent;
+        const manaDescent = manaMetrics.fontBoundingBoxDescent ?? manaMetrics.actualBoundingBoxDescent;
+        const manaBaselineY = textY + (manaAscent - manaDescent) / 2;
+
+        // Contorno opcional: SOMENTE se explicitamente ativado com espessura > 0
+        if (attrConfig.strokeWidthPx && attrConfig.strokeWidthPx > 0) {
+          ctx.strokeStyle = attrConfig.strokeColor || '#000000';
+          ctx.lineWidth = attrConfig.strokeWidthPx * scale * manaScale;
+          ctx.lineJoin = 'round';
+          ctx.strokeText(numStr, textX, manaBaselineY);
+        }
+
+        // Preenchimento com a cor selecionada (sem contorno preto forçado)
+        ctx.fillStyle = attrConfig.fontColor || '#ffffff';
+        ctx.fillText(numStr, textX, manaBaselineY);
+        ctx.restore();
+      } catch (e) {
+        console.warn('Erro ao desenhar mana/vida no canvas de exportação:', e);
       }
-
-      // Desenhar o número de Mana centralizado sobre a esfera
-      const numStr = String(sorceryConfig.mana.quantity);
-      const fontSize = Math.max(8, Math.round((sorceryConfig.mana.fontSizePx || 20) * scale * manaScale));
-      const fontDef = AVAILABLE_FONTS.find((f) => f.id === sorceryConfig.mana.fontFamily);
-      const cssFontFamily = fontDef ? fontDef.cssFamily : "'Morpheus', Georgia, serif";
-      ctx.font = `bold ${fontSize}px ${cssFontFamily}`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'alphabetic';
-      const textX = centerX + (sorceryConfig.mana.textOffsetX || 0) * scale * manaScale;
-      const textY = centerY + (sorceryConfig.mana.textOffsetY || 0) * scale * manaScale;
-
-      // Alinhamento vertical fiel ao layout CSS (line-height: 1 centralizado verticalmente)
-      const manaMetrics = ctx.measureText(numStr);
-      const manaAscent = manaMetrics.fontBoundingBoxAscent ?? manaMetrics.actualBoundingBoxAscent;
-      const manaDescent = manaMetrics.fontBoundingBoxDescent ?? manaMetrics.actualBoundingBoxDescent;
-      const manaBaselineY = textY + (manaAscent - manaDescent) / 2;
-
-      // Contorno opcional: SOMENTE se explicitamente ativado com espessura > 0
-      if (sorceryConfig.mana.strokeWidthPx && sorceryConfig.mana.strokeWidthPx > 0) {
-        ctx.strokeStyle = sorceryConfig.mana.strokeColor || '#000000';
-        ctx.lineWidth = sorceryConfig.mana.strokeWidthPx * scale * manaScale;
-        ctx.lineJoin = 'round';
-        ctx.strokeText(numStr, textX, manaBaselineY);
-      }
-
-      // Preenchimento com a cor selecionada (sem contorno preto forçado)
-      ctx.fillStyle = sorceryConfig.mana.fontColor || '#ffffff';
-      ctx.fillText(numStr, textX, manaBaselineY);
-      ctx.restore();
-    } catch (e) {
-      console.warn('Erro ao desenhar mana no canvas de exportação:', e);
     }
   }
 
@@ -209,6 +216,7 @@ export async function exportCardToPng(
   const allowedThresholdElements = getAllowedThresholdElements(effectiveAttribute, cardType);
 
   if (
+    cardType !== 'avatar' &&
     allowedThresholdElements.length > 0 &&
     sorceryConfig?.threshold &&
     sorceryConfig.threshold.isVisible

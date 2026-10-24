@@ -154,8 +154,8 @@ export const BUILT_IN_PRESETS: CardLayoutPreset[] = [
       fit: 'cover',
       opacity: 1,
       frameTopPercent: 13,
-      frameHeightPercent: 50,
-      frameMarginPercent: 5,
+      frameHeightPercent: 41,
+      frameMarginPercent: 6,
     },
     frameConfig: {
       imageUrl: null,
@@ -166,7 +166,7 @@ export const BUILT_IN_PRESETS: CardLayoutPreset[] = [
     symbolsConfig: DEFAULT_CARD_SYMBOLS,
     textBoxes: DEFAULT_SITE_TEXT_BOXES,
     sorceryConfig: SITE_DEFAULT_SORCERY_CONFIG,
-    requiredFonts: ['morpheus', 'book-antiqua', 'palatino-italic'],
+    requiredFonts: ['fantaisie-artistique', 'book-antiqua', 'palatino-italic'],
   },
   {
     id: 'builtin-tcg-classic',

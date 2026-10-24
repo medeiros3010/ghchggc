@@ -24,6 +24,7 @@ import {
 import {
   DEFAULT_CARD_ART,
   DEFAULT_CARD_FRAME,
+  DEFAULT_AVATAR_FRAME_URL,
   DEFAULT_CARD_SYMBOLS,
   getDefaultTextBoxesForType,
 } from './cardDefaults';
@@ -209,7 +210,7 @@ export function getDefaultCardTypeState(cardType: CardTypeId): CardTypeState {
 
   const frameConfig: CardFrameConfig = {
     ...DEFAULT_CARD_FRAME,
-    imageUrl: null,
+    imageUrl: cardType === 'avatar' ? DEFAULT_AVATAR_FRAME_URL : null,
   };
 
   const symbolsConfig: CardSymbolsConfig = JSON.parse(JSON.stringify(DEFAULT_CARD_SYMBOLS));
@@ -283,6 +284,10 @@ export function getStoredCardTypeState(cardType: CardTypeId): CardTypeState {
         frameConfig: {
           ...defaultState.frameConfig,
           ...(parsed.frameConfig || {}),
+          imageUrl:
+            cardType === 'avatar' && !parsed.frameConfig?.imageUrl
+              ? DEFAULT_AVATAR_FRAME_URL
+              : (parsed.frameConfig?.imageUrl ?? defaultState.frameConfig.imageUrl),
         },
         symbolsConfig: parsed.symbolsConfig || defaultState.symbolsConfig,
         textBoxes: Array.isArray(parsed.textBoxes) && parsed.textBoxes.length > 0
@@ -355,6 +360,43 @@ export function getStoredCardTypeState(cardType: CardTypeId): CardTypeState {
                   : cfg.threshold.yPercent;
             }
 
+            if (cardType === 'avatar') {
+              const defaultAvatarCombat = defaultState.sorceryConfig.combat;
+              const currentSingle = cfg.combat?.single || defaultAvatarCombat.single;
+              const avatarImg =
+                !currentSingle.imageUrl ||
+                currentSingle.imageUrl.includes('attack_single.png') ||
+                currentSingle.imageUrl.includes('attack_defense.png')
+                  ? defaultAvatarCombat.single.imageUrl
+                  : currentSingle.imageUrl;
+
+              return {
+                ...cfg,
+                threshold: updatedThreshold,
+                combat: {
+                  ...defaultAvatarCombat,
+                  ...(cfg.combat || {}),
+                  selectedType: 'attack-only',
+                  isVisible: true,
+                  single: {
+                    ...defaultAvatarCombat.single,
+                    ...(currentSingle || {}),
+                    imageUrl: avatarImg,
+                    value: currentSingle.value !== undefined && currentSingle.value !== null ? currentSingle.value : '2',
+                    attackXPercent: 50.0,
+                    attackYPercent: 50.0,
+                  },
+                  dual: {
+                    ...defaultAvatarCombat.dual,
+                    attackValue: currentSingle.value !== undefined && currentSingle.value !== null ? currentSingle.value : '2',
+                    defenseValue: '',
+                  },
+                  attack: currentSingle.value !== undefined && currentSingle.value !== null ? currentSingle.value : '2',
+                  defense: null,
+                },
+              };
+            }
+
             return {
               ...cfg,
               threshold: updatedThreshold,
@@ -363,6 +405,21 @@ export function getStoredCardTypeState(cardType: CardTypeId): CardTypeState {
           return cfg;
         })(),
       };
+
+      // Se for Site, verifica se o estado em cache é legado (ex: threshold no topo y=6.8% em vez de 84.0%, ou caixa de descrição fora de posição/oculta)
+      if (cardType === 'site') {
+        const hasLegacySiteLayout =
+          !restoredState.sorceryConfig?.threshold?.yPercent ||
+          restoredState.sorceryConfig.threshold.yPercent < 50 ||
+          restoredState.sorceryConfig.threshold.xPercent < 50 ||
+          restoredState.textBoxes.some((b) => (b.id === 'box-description' || b.role === 'rules') && (!b.isVisible || b.yPercent < 80));
+
+        if (hasLegacySiteLayout) {
+          const siteOfficial = getSiteOfficialDefaultLayout();
+          restoredState.textBoxes = applySiteOfficialLayoutToTextBoxes(restoredState.textBoxes, siteOfficial, true);
+          restoredState.sorceryConfig = applySiteOfficialLayoutToSorcery(restoredState.sorceryConfig, siteOfficial, true);
+        }
+      }
 
       if (!memorySession.cardStates) {
         memorySession.cardStates = {} as Record<CardTypeId, CardTypeState>;
@@ -458,7 +515,10 @@ export function resetVisualsToDefaultCardState(
 
   const restoredFrame: CardFrameConfig = {
     ...defaultBase.frameConfig,
-    imageUrl: current.frameConfig.imageUrl,
+    imageUrl:
+      cardType === 'avatar'
+        ? (current.frameConfig.imageUrl || DEFAULT_AVATAR_FRAME_URL)
+        : current.frameConfig.imageUrl,
   };
 
   const restoredTextBoxes: TextBoxConfig[] = defaultBase.textBoxes.map((defBox) => {
@@ -557,17 +617,29 @@ export function createNewCardState(
     cleanTextBoxes = applySiteOfficialLayoutToTextBoxes(cleanTextBoxes, siteOfficial, false);
   }
 
-  // 4. Configuração de moldura: se novo atributo informado, carrega a respectiva moldura PNG
+  // 4. Configuração de moldura: se for Avatar, sempre carrega a moldura padrão permanente do Avatar;
+  // se novo atributo informado para outros tipos, carrega a respectiva moldura PNG
   const targetAttribute = newAttribute !== undefined ? newAttribute : base.selectedAttribute;
-  const frameConfig: CardFrameConfig = newAttribute
-    ? {
-        ...base.frameConfig,
-        imageUrl: getFrameUrlForAttribute(newAttribute, cardType),
-        opacity: 1,
-        fit: 'fill',
-        isVisible: true,
-      }
-    : { ...base.frameConfig };
+  let frameConfig: CardFrameConfig;
+  if (cardType === 'avatar') {
+    frameConfig = {
+      ...base.frameConfig,
+      imageUrl: DEFAULT_AVATAR_FRAME_URL,
+      opacity: 1,
+      fit: 'fill',
+      isVisible: true,
+    };
+  } else if (newAttribute) {
+    frameConfig = {
+      ...base.frameConfig,
+      imageUrl: getFrameUrlForAttribute(newAttribute, cardType),
+      opacity: 1,
+      fit: 'fill',
+      isVisible: true,
+    };
+  } else {
+    frameConfig = { ...base.frameConfig };
+  }
 
   return {
     cardType,

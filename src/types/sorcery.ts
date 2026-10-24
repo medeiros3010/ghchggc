@@ -392,6 +392,7 @@ export function getCombatMode(combat?: Partial<SorceryCombatConfig> | null): Sor
 
 export interface SorceryIndicatorsConfig {
   mana: SorceryManaConfig;
+  vida?: SorceryManaConfig;
   threshold: SorceryThresholdConfig;
   combat: SorceryCombatConfig;
 }
@@ -641,10 +642,10 @@ export const DEFAULT_SORCERY_CONFIG: SorceryIndicatorsConfig = PERMANENT_DEFAULT
 export const SITE_DEFAULT_SINGLE_ATTACK_CONFIG: SingleAttackCombatConfig = {
   value: '0',
   imageUrl: '/assets/sorcery/attack_single.png',
-  xPercent: 88.5,
-  yPercent: 3.5,
-  widthPercent: 7.0,
-  heightPercent: 8.5,
+  xPercent: 85.9,
+  yPercent: 82.4,
+  widthPercent: 5.7,
+  heightPercent: 6.9,
   keepAspectRatio: true,
   scale: 1.0,
   opacity: 1.0,
@@ -653,7 +654,7 @@ export const SITE_DEFAULT_SINGLE_ATTACK_CONFIG: SingleAttackCombatConfig = {
   attackYPercent: 42.0,
   style: {
     fontFamily: 'morpheus',
-    fontSizePx: 22,
+    fontSizePx: 19,
     fontColor: '#000000',
     fontWeight: 'bold',
     fontStyle: 'normal',
@@ -672,12 +673,12 @@ export const SITE_DEFAULT_DUAL_COMBAT_CONFIG: DualCombatConfig = {
   attackValue: '4',
   defenseValue: '5',
   backgroundImageUrl: '/assets/sorcery/attack_defense.png',
-  xPercent: 81.5,
-  yPercent: 3.0,
+  xPercent: 80.9,
+  yPercent: 80.7,
   widthPercent: 15.0,
   heightPercent: 9.5,
   keepAspectRatio: true,
-  scale: 1.0,
+  scale: 0.75,
   opacity: 1.0,
   zIndex: 60,
   attackXPercent: 35.5,
@@ -715,13 +716,13 @@ export const SITE_DEFAULT_DUAL_COMBAT_CONFIG: DualCombatConfig = {
 };
 
 export const SITE_DEFAULT_COMBAT_CONFIG: SorceryCombatConfig = {
-  selectedType: 'attack-only',
+  selectedType: 'attack-defense',
   isVisible: true,
   siteCombatOption: 'attack-only',
   single: SITE_DEFAULT_SINGLE_ATTACK_CONFIG,
   dual: SITE_DEFAULT_DUAL_COMBAT_CONFIG,
-  attack: '0',
-  defense: null,
+  attack: '4',
+  defense: '5',
   xPercent: 88.5,
   yPercent: 3.5,
   widthPercent: 7.0,
@@ -732,8 +733,32 @@ export const SITE_DEFAULT_COMBAT_CONFIG: SorceryCombatConfig = {
   zIndex: 60,
   attackSingleUrl: '/assets/sorcery/attack_single.png',
   attackDefenseUrl: '/assets/sorcery/attack_defense.png',
-  attackStyle: SITE_DEFAULT_SINGLE_ATTACK_CONFIG.style,
-  defenseStyle: SITE_DEFAULT_DUAL_COMBAT_CONFIG.defenseStyle,
+  attackStyle: {
+    fontFamily: 'morpheus',
+    fontSizePx: 22,
+    fontColor: '#000000',
+    fontWeight: 'bold',
+    fontStyle: 'normal',
+    offsetX: 0,
+    offsetY: 0,
+    textAlign: 'center',
+    textBaseline: 'middle',
+    strokeWidthPx: 1.0,
+    strokeColor: '#ffffff',
+  },
+  defenseStyle: {
+    fontFamily: 'morpheus',
+    fontSizePx: 22,
+    fontColor: '#000000',
+    fontWeight: 'bold',
+    fontStyle: 'normal',
+    offsetX: 0,
+    offsetY: 0,
+    textAlign: 'center',
+    textBaseline: 'middle',
+    strokeWidthPx: 1.0,
+    strokeColor: '#dcd0d0',
+  },
   attackNumberAnchor: { xPercent: 35.5, yPercent: 46.5 },
   defenseNumberAnchor: { xPercent: 65.0, yPercent: 48.0 },
   singleAttackNumberAnchor: { xPercent: 49.0, yPercent: 42.0 },
@@ -763,8 +788,8 @@ export const SITE_DEFAULT_MANA_CONFIG: SorceryManaConfig = {
 
 export const SITE_DEFAULT_THRESHOLD_CONFIG: SorceryThresholdConfig = {
   isVisible: true,
-  xPercent: 5.5,
-  yPercent: 6.8,
+  xPercent: 82.9,
+  yPercent: 84.0,
   distanceFromManaPercent: 0,
   air: 0,
   earth: 0,
@@ -780,8 +805,8 @@ export const SITE_DEFAULT_THRESHOLD_CONFIG: SorceryThresholdConfig = {
   symbolHeightPercent: 5.2,
   keepAspectRatio: true,
   scale: 0.85,
-  gapXPercent: 12,
-  gapYPercent: 0,
+  gapXPercent: 12.0,
+  gapYPercent: 0.0,
   opacity: 1.0,
   zIndex: 60,
   elementImages: {
@@ -812,6 +837,135 @@ export const DEFAULT_NON_COMBAT_SORCERY_CONFIG: SorceryIndicatorsConfig = {
   },
 };
 
+/**
+ * CONFIGURAÇÃO PADRÃO DEFINITIVA DE COMBATE EXCLUSIVA DO AVATAR
+ * Possui exclusivamente ATK com o novo ícone das espadas cruzadas (atk.png)
+ * e número de ataque perfeitamente centralizado.
+ */
+export const AVATAR_ATTACK_ICON_URL = '/assets/sorcery/atk.png';
+
+export const AVATAR_DEFAULT_SINGLE_ATTACK_CONFIG: SingleAttackCombatConfig = {
+  value: '2',
+  imageUrl: AVATAR_ATTACK_ICON_URL,
+  xPercent: 84.2,
+  yPercent: 3.0,
+  widthPercent: 9.2,
+  heightPercent: 7.2,
+  keepAspectRatio: true,
+  scale: 1.0,
+  opacity: 1.0,
+  zIndex: 60,
+  attackXPercent: 50.0,
+  attackYPercent: 50.0,
+  style: {
+    fontFamily: 'morpheus',
+    fontSizePx: 22,
+    fontColor: '#ffffff',
+    fontWeight: 'bold',
+    fontStyle: 'normal',
+    offsetX: 0,
+    offsetY: 0,
+    textAlign: 'center',
+    textBaseline: 'middle',
+    strokeWidthPx: 2.0,
+    strokeColor: '#000000',
+  },
+  numberAnchor: { xPercent: 50.0, yPercent: 50.0 },
+  attackImageUrl: '',
+};
+
+export const AVATAR_DEFAULT_COMBAT_CONFIG: SorceryCombatConfig = {
+  selectedType: 'attack-only',
+  isVisible: true,
+  single: AVATAR_DEFAULT_SINGLE_ATTACK_CONFIG,
+  dual: {
+    ...PERMANENT_DEFAULT_DUAL_COMBAT_CONFIG,
+    attackValue: '2',
+    defenseValue: '',
+  },
+  attack: '2',
+  defense: null,
+  xPercent: 84.2,
+  yPercent: 3.0,
+  widthPercent: 9.2,
+  heightPercent: 7.2,
+  keepAspectRatio: true,
+  scale: 1.0,
+  opacity: 1.0,
+  zIndex: 60,
+  attackSingleUrl: AVATAR_ATTACK_ICON_URL,
+  attackDefenseUrl: '/assets/sorcery/attack_defense.png',
+  attackStyle: {
+    fontFamily: 'morpheus',
+    fontSizePx: 22,
+    fontColor: '#ffffff',
+    fontWeight: 'bold',
+    fontStyle: 'normal',
+    offsetX: 0,
+    offsetY: 0,
+    textAlign: 'center',
+    textBaseline: 'middle',
+    strokeWidthPx: 2.0,
+    strokeColor: '#000000',
+  },
+  defenseStyle: {
+    ...DEFAULT_DEFENSE_STYLE,
+  },
+  attackNumberAnchor: { xPercent: 50.0, yPercent: 50.0 },
+  defenseNumberAnchor: { xPercent: 72.0, yPercent: 50.0 },
+  singleAttackNumberAnchor: { xPercent: 50.0, yPercent: 50.0 },
+  isAdjustingNumbers: false,
+};
+
+/**
+ * CONFIGURAÇÃO PADRÃO DEFINITIVA DO ATRIBUTO VIDA EXCLUSIVO DO AVATAR
+ * Substitui integralmente o sistema de Mana no Avatar pelo atributo Vida,
+ * utilizando o novo ícone oficial vida(1).png com número de Vida centralizado.
+ */
+export const AVATAR_VIDA_ICON_URL = '/assets/sorcery/vida(1).png';
+
+export const AVATAR_DEFAULT_VIDA_CONFIG: SorceryManaConfig = {
+  quantity: 20,
+  isVisible: true,
+  xPercent: 6.4,
+  yPercent: 2.8,
+  widthPercent: 9.5,
+  heightPercent: 6.8,
+  keepAspectRatio: true,
+  scale: 0.85,
+  opacity: 1.0,
+  zIndex: 60,
+  imageUrl: AVATAR_VIDA_ICON_URL,
+  fontFamily: 'morpheus',
+  fontSizePx: 26,
+  fontColor: '#ffffff',
+  strokeColor: '#000000',
+  strokeWidthPx: 1.5,
+  textOffsetX: 0,
+  textOffsetY: 1,
+};
+
+export const AVATAR_DEFAULT_THRESHOLD_CONFIG: SorceryThresholdConfig = {
+  ...PERMANENT_DEFAULT_THRESHOLD_CONFIG,
+  isVisible: false,
+  air: 0,
+  earth: 0,
+  fire: 0,
+  water: 0,
+  espirito: 0,
+  materia: 0,
+  vazio: 0,
+  vida: 0,
+  morte: 0,
+};
+
+export const AVATAR_DEFAULT_SORCERY_CONFIG: SorceryIndicatorsConfig = {
+  mana: AVATAR_DEFAULT_VIDA_CONFIG,
+  vida: AVATAR_DEFAULT_VIDA_CONFIG,
+  threshold: AVATAR_DEFAULT_THRESHOLD_CONFIG,
+  combat: AVATAR_DEFAULT_COMBAT_CONFIG,
+};
+
 export function getDefaultSorceryConfigForType(
   cardType?: import('./cardType').CardTypeId | null
 ): SorceryIndicatorsConfig {
@@ -826,6 +980,8 @@ export function getDefaultSorceryConfigForType(
       config = DEFAULT_NON_COMBAT_SORCERY_CONFIG;
       break;
     case 'avatar':
+      config = AVATAR_DEFAULT_SORCERY_CONFIG;
+      break;
     case 'minion':
     default:
       config = PERMANENT_DEFAULT_SORCERY_CONFIG;
@@ -1262,7 +1418,7 @@ export function saveStoredSorceryResources(resources: {
 const SORCERY_CONFIG_STORAGE_KEY = 'cardforge_sorcery_config_v1';
 const SITE_SORCERY_CONFIG_STORAGE_KEY = 'cardforge_sorcery_config_site_v1';
 const CURRENT_LAYOUT_VERSION_KEY = 'cardforge_default_layout_version';
-const CURRENT_DEFAULT_LAYOUT_VERSION = 'v4_attached';
+const CURRENT_DEFAULT_LAYOUT_VERSION = 'v5_site_permanent';
 
 export function getSorceryStorageKey(cardType?: import('./cardType').CardTypeId | null): string {
   if (cardType === 'site') return SITE_SORCERY_CONFIG_STORAGE_KEY;
@@ -1293,9 +1449,32 @@ export function getStoredSorceryConfig(cardType?: import('./cardType').CardTypeI
 
       const parsedCombat = parsed.combat || {};
 
-      // 1. Determinação do Tipo Selecionado ('attack-only' ou 'attack-defense')
+      const isAvatar = cardType === 'avatar';
+      // 1. Suporte dedicado ao atributo Vida do Avatar com retrocompatibilidade
+      let avatarVidaConfig: SorceryManaConfig | undefined = undefined;
+      if (isAvatar) {
+        const rawVida = parsed.vida || parsed.mana || {};
+        let vidaImg = rawVida.imageUrl;
+        if (!vidaImg || vidaImg.includes('mana.png')) {
+          vidaImg = AVATAR_VIDA_ICON_URL;
+        }
+        avatarVidaConfig = {
+          ...AVATAR_DEFAULT_VIDA_CONFIG,
+          ...rawVida,
+          quantity: rawVida.quantity !== undefined ? rawVida.quantity : (rawVida.value !== undefined ? Number(rawVida.value) : 20),
+          imageUrl: vidaImg,
+          fontSizePx: rawVida.fontSizePx ?? 26,
+          fontColor: rawVida.fontColor || '#ffffff',
+          strokeColor: rawVida.strokeColor || '#000000',
+          strokeWidthPx: rawVida.strokeWidthPx !== undefined ? rawVida.strokeWidthPx : 1.5,
+        };
+      }
+
+      // 2. Determinação do Tipo Selecionado ('attack-only' ou 'attack-defense')
       let selectedType: CreatureCombatType = 'attack-only';
-      if (parsedCombat.selectedType === 'attack-only' || parsedCombat.selectedType === 'attack-defense') {
+      if (isAvatar) {
+        selectedType = 'attack-only';
+      } else if (parsedCombat.selectedType === 'attack-only' || parsedCombat.selectedType === 'attack-defense') {
         selectedType = parsedCombat.selectedType;
       } else if (parsedCombat.defense !== null && parsedCombat.defense !== undefined && String(parsedCombat.defense).trim() !== '') {
         selectedType = 'attack-defense';
@@ -1308,25 +1487,31 @@ export function getStoredSorceryConfig(cardType?: import('./cardType').CardTypeI
         ...(rawSingle.style || parsedCombat.attackStyle || {}),
         fontFamily: rawSingle.style?.fontFamily || parsedCombat.attackStyle?.fontFamily || DEFAULT_ATTACK_STYLE.fontFamily,
         fontSizePx: rawSingle.style?.fontSizePx ?? parsedCombat.attackStyle?.fontSizePx ?? DEFAULT_ATTACK_STYLE.fontSizePx,
-        fontColor: rawSingle.style?.fontColor || parsedCombat.attackStyle?.fontColor || DEFAULT_ATTACK_STYLE.fontColor,
+        fontColor: rawSingle.style?.fontColor || parsedCombat.attackStyle?.fontColor || (isAvatar ? '#ffffff' : DEFAULT_ATTACK_STYLE.fontColor),
         fontWeight: rawSingle.style?.fontWeight || parsedCombat.attackStyle?.fontWeight || DEFAULT_ATTACK_STYLE.fontWeight,
         fontStyle: rawSingle.style?.fontStyle || parsedCombat.attackStyle?.fontStyle || DEFAULT_ATTACK_STYLE.fontStyle,
         offsetX: rawSingle.style?.offsetX ?? parsedCombat.attackStyle?.offsetX ?? 0,
         offsetY: rawSingle.style?.offsetY ?? parsedCombat.attackStyle?.offsetY ?? 0,
         textAlign: rawSingle.style?.textAlign || 'center',
         textBaseline: rawSingle.style?.textBaseline || 'middle',
-        strokeWidthPx: rawSingle.style?.strokeWidthPx ?? parsedCombat.attackStyle?.strokeWidthPx ?? 0,
+        strokeWidthPx: rawSingle.style?.strokeWidthPx ?? parsedCombat.attackStyle?.strokeWidthPx ?? (isAvatar ? 2.0 : 0),
         strokeColor: rawSingle.style?.strokeColor || parsedCombat.attackStyle?.strokeColor || '#000000',
       };
 
-      const singleFallback = isSite ? SITE_DEFAULT_SINGLE_ATTACK_CONFIG : DEFAULT_SINGLE_ATTACK_CONFIG;
+      const singleFallback = isSite
+        ? SITE_DEFAULT_SINGLE_ATTACK_CONFIG
+        : (isAvatar ? AVATAR_DEFAULT_SINGLE_ATTACK_CONFIG : DEFAULT_SINGLE_ATTACK_CONFIG);
+      let singleImageUrl = rawSingle.imageUrl || parsedCombat.attackSingleUrl;
+      if (isAvatar && (!singleImageUrl || singleImageUrl.includes('attack_single.png') || singleImageUrl.includes('attack_defense.png'))) {
+        singleImageUrl = AVATAR_ATTACK_ICON_URL;
+      }
       const singleConfig: SingleAttackCombatConfig = {
         ...singleFallback,
         ...rawSingle,
         value: rawSingle.value !== undefined
           ? String(rawSingle.value)
-          : (parsedCombat.attack !== undefined && parsedCombat.attack !== null ? String(parsedCombat.attack) : '0'),
-        imageUrl: rawSingle.imageUrl || parsedCombat.attackSingleUrl || singleFallback.imageUrl,
+          : (parsedCombat.attack !== undefined && parsedCombat.attack !== null ? String(parsedCombat.attack) : (isAvatar ? '2' : '0')),
+        imageUrl: singleImageUrl || singleFallback.imageUrl,
         xPercent: rawSingle.xPercent ?? parsedCombat.singleXPercent ?? parsedCombat.xPercent ?? singleFallback.xPercent,
         yPercent: rawSingle.yPercent ?? parsedCombat.singleYPercent ?? parsedCombat.yPercent ?? singleFallback.yPercent,
         widthPercent: rawSingle.widthPercent ?? parsedCombat.singleWidthPercent ?? singleFallback.widthPercent,
@@ -1335,8 +1520,8 @@ export function getStoredSorceryConfig(cardType?: import('./cardType').CardTypeI
         scale: rawSingle.scale ?? parsedCombat.scale ?? 1.0,
         opacity: rawSingle.opacity ?? parsedCombat.opacity ?? 1.0,
         zIndex: rawSingle.zIndex ?? parsedCombat.zIndex ?? 60,
-        attackXPercent: rawSingle.attackXPercent ?? (parsedCombat.singleAttackNumberAnchor?.xPercent ?? 50.0),
-        attackYPercent: rawSingle.attackYPercent ?? (parsedCombat.singleAttackNumberAnchor?.yPercent ?? 50.0),
+        attackXPercent: isAvatar ? 50.0 : (rawSingle.attackXPercent ?? (parsedCombat.singleAttackNumberAnchor?.xPercent ?? 50.0)),
+        attackYPercent: isAvatar ? 50.0 : (rawSingle.attackYPercent ?? (parsedCombat.singleAttackNumberAnchor?.yPercent ?? 50.0)),
         attackImageUrl: rawSingle.attackImageUrl || undefined,
         style: singleStyle,
       };
@@ -1431,12 +1616,13 @@ export function getStoredSorceryConfig(cardType?: import('./cardType').CardTypeI
       };
 
       return {
-        mana: {
+        mana: isAvatar && avatarVidaConfig ? avatarVidaConfig : {
           ...defaultBase.mana,
           ...(parsed.mana || {}),
           imageUrl: manaImageUrl,
           strokeWidthPx: parsed.mana?.strokeWidthPx !== undefined ? parsed.mana.strokeWidthPx : 0,
         },
+        ...(isAvatar && avatarVidaConfig ? { vida: avatarVidaConfig } : {}),
         threshold: {
           ...defaultBase.threshold,
           ...(parsed.threshold || {}),
@@ -1518,8 +1704,23 @@ export function saveStoredSorceryConfig(
       defenseStyle: dual.defenseStyle,
     };
 
+    const isAvatar = cardType === 'avatar';
+    const avatarVida = isAvatar ? (config.vida || config.mana) : undefined;
+
     const toSave: SorceryIndicatorsConfig = {
       ...config,
+      ...(isAvatar && avatarVida
+        ? {
+            vida: {
+              ...avatarVida,
+              imageUrl: avatarVida.imageUrl || AVATAR_VIDA_ICON_URL,
+            },
+            mana: {
+              ...avatarVida,
+              imageUrl: avatarVida.imageUrl || AVATAR_VIDA_ICON_URL,
+            },
+          }
+        : {}),
       combat: synchronizedCombat,
     };
 
@@ -1546,7 +1747,7 @@ export function createNewCardSorceryConfig(
 ): SorceryIndicatorsConfig {
   const defaultFallback = getDefaultSorceryConfigForType(cardType);
   const base = currentVisuals || getStoredSorceryConfig(cardType);
-  const hasCombat = cardType === 'minion' || cardType === 'site';
+  const hasCombat = cardType === 'minion' || cardType === 'site' || cardType === 'avatar';
 
   // Assegura 6.2% como novo padrão permanente ao iniciar uma nova carta
   const targetYPercent =
@@ -1555,6 +1756,90 @@ export function createNewCardSorceryConfig(
     base.threshold?.yPercent === undefined
       ? defaultFallback.threshold.yPercent
       : base.threshold.yPercent;
+
+  if (cardType === 'avatar') {
+    const existingVida = base.vida || base.mana;
+    const freshVida: SorceryManaConfig = {
+      ...(existingVida || AVATAR_DEFAULT_VIDA_CONFIG),
+      quantity: 20,
+      imageUrl: AVATAR_VIDA_ICON_URL,
+    };
+    return {
+      mana: freshVida,
+      vida: freshVida,
+      threshold: {
+        ...base.threshold,
+        isVisible: false,
+        yPercent: targetYPercent,
+        air: 0,
+        earth: 0,
+        fire: 0,
+        water: 0,
+        espirito: 0,
+        materia: 0,
+        vazio: 0,
+        vida: 0,
+        morte: 0,
+      },
+      combat: {
+        ...base.combat,
+        selectedType: 'attack-only',
+        isVisible: true,
+        single: {
+          ...(base.combat?.single || defaultFallback.combat.single),
+          imageUrl: AVATAR_ATTACK_ICON_URL,
+          value: '2',
+          attackXPercent: 50.0,
+          attackYPercent: 50.0,
+        },
+        dual: {
+          ...(base.combat?.dual || defaultFallback.combat.dual),
+          attackValue: '2',
+          defenseValue: '',
+        },
+        attack: '2',
+        defense: null,
+      },
+    };
+  }
+
+  if (cardType === 'site') {
+    return {
+      mana: {
+        ...defaultFallback.mana,
+        quantity: 0,
+      },
+      threshold: {
+        ...defaultFallback.threshold,
+        air: 0,
+        earth: 0,
+        fire: 0,
+        water: 0,
+        espirito: 0,
+        materia: 0,
+        vazio: 0,
+        vida: 0,
+        morte: 0,
+      },
+      combat: {
+        ...defaultFallback.combat,
+        selectedType: 'attack-defense',
+        siteCombatOption: 'attack-only',
+        isVisible: true,
+        single: {
+          ...defaultFallback.combat.single,
+          value: '0',
+        },
+        dual: {
+          ...defaultFallback.combat.dual,
+          attackValue: '4',
+          defenseValue: '5',
+        },
+        attack: '4',
+        defense: '5',
+      },
+    };
+  }
 
   return {
     mana: {
@@ -1607,12 +1892,23 @@ export function resetVisualsToPermanentDefaults(
     saveStoredSorceryConfig(perm, cardType);
     return perm;
   }
+  const isAvatar = cardType === 'avatar';
+  const avatarVidaQty = current.vida?.quantity ?? current.mana?.quantity ?? 20;
+
   const merged: SorceryIndicatorsConfig = {
     ...perm,
     mana: {
       ...perm.mana,
-      quantity: current.mana.quantity,
+      quantity: isAvatar ? avatarVidaQty : current.mana.quantity,
     },
+    ...(isAvatar
+      ? {
+          vida: {
+            ...(perm.vida || perm.mana),
+            quantity: avatarVidaQty,
+          },
+        }
+      : {}),
     threshold: {
       ...perm.threshold,
       fire: current.threshold.fire,
@@ -1631,11 +1927,11 @@ export function resetVisualsToPermanentDefaults(
       isVisible: current.combat.isVisible,
       single: {
         ...perm.combat.single,
-        value: current.combat.single?.value ?? '0',
+        value: current.combat.single?.value ?? (isAvatar ? '2' : '0'),
       },
       dual: {
         ...perm.combat.dual,
-        attackValue: current.combat.dual?.attackValue ?? '4',
+        attackValue: current.combat.dual?.attackValue ?? (isAvatar ? '2' : '4'),
         defenseValue: current.combat.dual?.defenseValue ?? '',
       },
       attack: current.combat.attack,

@@ -16,7 +16,13 @@
 import { TextBoxConfig, FontFamilyType } from '../types/card';
 import { SorceryThresholdConfig, SorceryCombatConfig, SorceryIndicatorsConfig } from '../types/sorcery';
 import { DEFAULT_SITE_TEXT_BOXES } from './cardDefaults';
-import { SITE_DEFAULT_THRESHOLD_CONFIG, SITE_DEFAULT_COMBAT_CONFIG } from '../types/sorcery';
+import {
+  SITE_DEFAULT_THRESHOLD_CONFIG,
+  SITE_DEFAULT_COMBAT_CONFIG,
+  SITE_DEFAULT_MANA_CONFIG,
+  SITE_DEFAULT_SINGLE_ATTACK_CONFIG,
+  SITE_DEFAULT_DUAL_COMBAT_CONFIG,
+} from '../types/sorcery';
 
 export const SITE_OFFICIAL_DEFAULT_STORAGE_KEY = 'cardforge_site_official_defaults_v1';
 export const SITE_CARD_STATE_STORAGE_KEY = 'cardforge_card_state_site';
@@ -183,118 +189,7 @@ export function getSiteCodeBaseLayout(): SiteOfficialLayout {
  * 3. Fallback de código
  */
 export function getSiteOfficialDefaultLayout(): SiteOfficialLayout {
-  const fallback = getSiteCodeBaseLayout();
-
-  if (typeof window === 'undefined' || !window.localStorage) {
-    return fallback;
-  }
-
-  try {
-    // 1. Tenta carregar a chave oficial explícita
-    const rawOfficial = localStorage.getItem(SITE_OFFICIAL_DEFAULT_STORAGE_KEY);
-    if (rawOfficial) {
-      const parsed = JSON.parse(rawOfficial);
-      if (parsed && parsed.threshold && parsed.compositeTitle) {
-        const comp = { ...fallback.compositeTitle, ...parsed.compositeTitle };
-        if (comp.fontFamily === 'morpheus') {
-          comp.fontFamily = 'fantaisie-artistique';
-        }
-        if (comp.typeFontFamily === 'morpheus' || comp.typeFontFamily === 'palatino-italic') {
-          comp.typeFontFamily = 'fantaisie-artistique';
-        }
-        return {
-          threshold: { ...fallback.threshold, ...parsed.threshold },
-          compositeTitle: comp,
-          combat: { ...fallback.combat, ...(parsed.combat || {}) },
-        };
-      }
-    }
-
-    // 2. Tenta capturar do estado atual da carta Site configurada pelo usuário
-    const rawSiteState = localStorage.getItem(SITE_CARD_STATE_STORAGE_KEY);
-    if (rawSiteState) {
-      const siteState = JSON.parse(rawSiteState);
-      const boxes: TextBoxConfig[] = siteState.textBoxes || [];
-      const titleBox = boxes.find((b) => b.id === 'box-title' || b.role === 'title');
-      const typeBox = boxes.find((b) => b.id === 'box-type' || b.role === 'type');
-      const thresh: SorceryThresholdConfig | undefined = siteState.sorceryConfig?.threshold;
-      const combat: SorceryCombatConfig | undefined = siteState.sorceryConfig?.combat;
-
-      if (titleBox || thresh) {
-        const captured: SiteOfficialLayout = {
-          threshold: thresh
-            ? {
-                xPercent: typeof thresh.xPercent === 'number' ? thresh.xPercent : fallback.threshold.xPercent,
-                yPercent: typeof thresh.yPercent === 'number' ? thresh.yPercent : fallback.threshold.yPercent,
-                symbolWidthPercent: thresh.symbolWidthPercent || fallback.threshold.symbolWidthPercent,
-                symbolHeightPercent: thresh.symbolHeightPercent || fallback.threshold.symbolHeightPercent,
-                scale: thresh.scale || fallback.threshold.scale,
-                gapXPercent: typeof thresh.gapXPercent === 'number' ? thresh.gapXPercent : fallback.threshold.gapXPercent,
-                gapYPercent: typeof thresh.gapYPercent === 'number' ? thresh.gapYPercent : fallback.threshold.gapYPercent,
-                opacity: thresh.opacity ?? fallback.threshold.opacity,
-                zIndex: thresh.zIndex || fallback.threshold.zIndex,
-              }
-            : fallback.threshold,
-          compositeTitle: titleBox
-            ? {
-                xPercent: titleBox.xPercent,
-                yPercent: titleBox.yPercent,
-                widthPercent: titleBox.widthPercent,
-                heightPercent: titleBox.heightPercent,
-                fontSizePx: titleBox.fontSizePx,
-                fontFamily: (titleBox.fontFamily === 'morpheus' || !titleBox.fontFamily) ? 'fantaisie-artistique' : titleBox.fontFamily,
-                fontWeight: titleBox.fontWeight,
-                textAlign: titleBox.textAlign,
-                textColor: titleBox.textColor,
-                bgColor: titleBox.bgColor,
-                borderColor: titleBox.borderColor,
-                borderWidthPx: titleBox.borderWidthPx,
-                borderRadiusPx: titleBox.borderRadiusPx,
-                paddingPx: titleBox.paddingPx,
-                paddingXPx: titleBox.paddingXPx,
-                paddingYPx: titleBox.paddingYPx,
-                letterSpacingPx: titleBox.letterSpacingPx,
-                wordSpacingPx: titleBox.wordSpacingPx,
-                lineHeight: titleBox.lineHeight,
-                textStrokeEnabled: titleBox.textStrokeEnabled,
-                textStrokeWidthPx: titleBox.textStrokeWidthPx,
-                textStrokeColor: titleBox.textStrokeColor,
-
-                typeFontSizePx: typeBox?.fontSizePx || fallback.compositeTitle.typeFontSizePx,
-                typeFontFamily: (typeBox?.fontFamily === 'morpheus' || typeBox?.fontFamily === 'palatino-italic' || !typeBox?.fontFamily)
-                  ? 'fantaisie-artistique'
-                  : (typeBox?.fontFamily || fallback.compositeTitle.typeFontFamily),
-                typeFontWeight: typeBox?.fontWeight || fallback.compositeTitle.typeFontWeight,
-                typeTextColor: typeBox?.textColor || fallback.compositeTitle.typeTextColor,
-                typeLetterSpacingPx: typeBox?.letterSpacingPx ?? fallback.compositeTitle.typeLetterSpacingPx,
-                typeTextStrokeEnabled: typeBox?.textStrokeEnabled ?? fallback.compositeTitle.typeTextStrokeEnabled,
-                typeTextStrokeWidthPx: typeBox?.textStrokeWidthPx ?? fallback.compositeTitle.typeTextStrokeWidthPx,
-                typeTextStrokeColor: typeBox?.textStrokeColor ?? fallback.compositeTitle.typeTextStrokeColor,
-              }
-            : fallback.compositeTitle,
-          combat: combat
-            ? {
-                siteCombatOption: combat.siteCombatOption || fallback.combat.siteCombatOption,
-                selectedType: combat.selectedType || fallback.combat.selectedType,
-                single: { ...fallback.combat.single, ...(combat.single || {}) },
-                dual: { ...fallback.combat.dual, ...(combat.dual || {}) },
-              }
-            : fallback.combat,
-        };
-
-        // Salva na chave oficial para consolidar permanentemente
-        try {
-          localStorage.setItem(SITE_OFFICIAL_DEFAULT_STORAGE_KEY, JSON.stringify(captured));
-        } catch {}
-
-        return captured;
-      }
-    }
-  } catch (e) {
-    console.warn('Erro ao carregar layout oficial do Site:', e);
-  }
-
-  return fallback;
+  return getSiteCodeBaseLayout();
 }
 
 /**
@@ -304,92 +199,7 @@ export function saveSiteOfficialDefaultLayout(params: {
   textBoxes: TextBoxConfig[];
   sorceryConfig: SorceryIndicatorsConfig;
 }): SiteOfficialLayout {
-  const current = getSiteOfficialDefaultLayout();
-  const titleBox = params.textBoxes.find((b) => b.id === 'box-title' || b.role === 'title');
-  const typeBox = params.textBoxes.find((b) => b.id === 'box-type' || b.role === 'type');
-  const thresh = params.sorceryConfig.threshold;
-  const combat = params.sorceryConfig.combat;
-
-  const updated: SiteOfficialLayout = {
-    threshold: {
-      xPercent: thresh.xPercent,
-      yPercent: thresh.yPercent,
-      symbolWidthPercent: thresh.symbolWidthPercent,
-      symbolHeightPercent: thresh.symbolHeightPercent,
-      scale: thresh.scale || 0.85,
-      gapXPercent: thresh.gapXPercent,
-      gapYPercent: thresh.gapYPercent,
-      opacity: thresh.opacity ?? 1.0,
-      zIndex: thresh.zIndex || 60,
-    },
-    compositeTitle: titleBox
-      ? {
-          xPercent: titleBox.xPercent,
-          yPercent: titleBox.yPercent,
-          widthPercent: titleBox.widthPercent,
-          heightPercent: titleBox.heightPercent,
-          fontSizePx: titleBox.fontSizePx,
-          fontFamily: titleBox.fontFamily,
-          fontWeight: titleBox.fontWeight,
-          textAlign: titleBox.textAlign,
-          textColor: titleBox.textColor,
-          bgColor: titleBox.bgColor,
-          borderColor: titleBox.borderColor,
-          borderWidthPx: titleBox.borderWidthPx,
-          borderRadiusPx: titleBox.borderRadiusPx,
-          paddingPx: titleBox.paddingPx,
-          paddingXPx: titleBox.paddingXPx,
-          paddingYPx: titleBox.paddingYPx,
-          letterSpacingPx: titleBox.letterSpacingPx,
-          wordSpacingPx: titleBox.wordSpacingPx,
-          lineHeight: titleBox.lineHeight,
-          textStrokeEnabled: titleBox.textStrokeEnabled,
-          textStrokeWidthPx: titleBox.textStrokeWidthPx,
-          textStrokeColor: titleBox.textStrokeColor,
-
-          typeFontSizePx: typeBox?.fontSizePx || current.compositeTitle.typeFontSizePx,
-          typeFontFamily: typeBox?.fontFamily || current.compositeTitle.typeFontFamily,
-          typeFontWeight: typeBox?.fontWeight || current.compositeTitle.typeFontWeight,
-          typeTextColor: typeBox?.textColor || current.compositeTitle.typeTextColor,
-          typeLetterSpacingPx: typeBox?.letterSpacingPx ?? current.compositeTitle.typeLetterSpacingPx,
-          typeTextStrokeEnabled: typeBox?.textStrokeEnabled ?? current.compositeTitle.typeTextStrokeEnabled,
-          typeTextStrokeWidthPx: typeBox?.textStrokeWidthPx ?? current.compositeTitle.typeTextStrokeWidthPx,
-          typeTextStrokeColor: typeBox?.textStrokeColor ?? current.compositeTitle.typeTextStrokeColor,
-        }
-      : current.compositeTitle,
-    combat: {
-      siteCombatOption: combat.siteCombatOption || current.combat.siteCombatOption,
-      selectedType: combat.selectedType || current.combat.selectedType,
-      single: {
-        xPercent: combat.single?.xPercent ?? current.combat.single.xPercent,
-        yPercent: combat.single?.yPercent ?? current.combat.single.yPercent,
-        widthPercent: combat.single?.widthPercent ?? current.combat.single.widthPercent,
-        heightPercent: combat.single?.heightPercent ?? current.combat.single.heightPercent,
-        scale: combat.single?.scale ?? current.combat.single.scale,
-        attackXPercent: combat.single?.attackXPercent ?? current.combat.single.attackXPercent,
-        attackYPercent: combat.single?.attackYPercent ?? current.combat.single.attackYPercent,
-      },
-      dual: {
-        xPercent: combat.dual?.xPercent ?? current.combat.dual.xPercent,
-        yPercent: combat.dual?.yPercent ?? current.combat.dual.yPercent,
-        widthPercent: combat.dual?.widthPercent ?? current.combat.dual.widthPercent,
-        heightPercent: combat.dual?.heightPercent ?? current.combat.dual.heightPercent,
-        scale: combat.dual?.scale ?? current.combat.dual.scale,
-        attackXPercent: combat.dual?.attackXPercent ?? current.combat.dual.attackXPercent,
-        attackYPercent: combat.dual?.attackYPercent ?? current.combat.dual.attackYPercent,
-        defenseXPercent: combat.dual?.defenseXPercent ?? current.combat.dual.defenseXPercent,
-        defenseYPercent: combat.dual?.defenseYPercent ?? current.combat.dual.defenseYPercent,
-      },
-    },
-  };
-
-  try {
-    localStorage.setItem(SITE_OFFICIAL_DEFAULT_STORAGE_KEY, JSON.stringify(updated));
-  } catch (e) {
-    console.warn('Erro ao salvar layout oficial do Site no localStorage:', e);
-  }
-
-  return updated;
+  return getSiteCodeBaseLayout();
 }
 
 /**
@@ -397,64 +207,17 @@ export function saveSiteOfficialDefaultLayout(params: {
  */
 export function applySiteOfficialLayoutToTextBoxes(
   boxes: TextBoxConfig[],
-  official: SiteOfficialLayout,
+  official?: SiteOfficialLayout,
   keepContent: boolean = true
 ): TextBoxConfig[] {
-  return boxes.map((box) => {
-    if (box.id === 'box-title' || box.role === 'title') {
-      const c = official.compositeTitle;
-      return {
-        ...box,
-        content: keepContent ? box.content : 'Ruínas Ancestrais de Sorcery',
-        xPercent: c.xPercent,
-        yPercent: c.yPercent,
-        widthPercent: c.widthPercent,
-        heightPercent: c.heightPercent,
-        fontSizePx: c.fontSizePx,
-        fontFamily: c.fontFamily,
-        fontWeight: c.fontWeight,
-        textAlign: c.textAlign,
-        textColor: c.textColor,
-        bgColor: c.bgColor,
-        borderColor: c.borderColor,
-        borderWidthPx: c.borderWidthPx,
-        borderRadiusPx: c.borderRadiusPx,
-        paddingPx: c.paddingPx ?? box.paddingPx ?? 0,
-        paddingXPx: c.paddingXPx,
-        paddingYPx: c.paddingYPx,
-        letterSpacingPx: c.letterSpacingPx,
-        wordSpacingPx: c.wordSpacingPx,
-        lineHeight: c.lineHeight,
-        textStrokeEnabled: c.textStrokeEnabled,
-        textStrokeWidthPx: c.textStrokeWidthPx,
-        textStrokeColor: c.textStrokeColor,
-        isVisible: true,
-      };
-    }
-
-    if (box.id === 'box-type' || box.role === 'type') {
-      const c = official.compositeTitle;
-      return {
-        ...box,
-        content: keepContent ? box.content : 'Site',
-        xPercent: c.xPercent,
-        yPercent: c.yPercent,
-        widthPercent: c.widthPercent,
-        heightPercent: c.heightPercent,
-        fontSizePx: c.typeFontSizePx,
-        fontFamily: c.typeFontFamily,
-        fontWeight: c.typeFontWeight,
-        textAlign: c.textAlign,
-        textColor: c.typeTextColor,
-        letterSpacingPx: c.typeLetterSpacingPx,
-        textStrokeEnabled: c.typeTextStrokeEnabled,
-        textStrokeWidthPx: c.typeTextStrokeWidthPx,
-        textStrokeColor: c.typeTextStrokeColor,
-        isVisible: true,
-      };
-    }
-
-    return box;
+  return DEFAULT_SITE_TEXT_BOXES.map((defBox) => {
+    const existing = boxes.find((b) => b.id === defBox.id || b.role === defBox.role);
+    if (!existing) return { ...defBox };
+    return {
+      ...defBox,
+      content: keepContent && existing.content !== undefined ? existing.content : defBox.content,
+      isVisible: true,
+    };
   });
 }
 
@@ -468,8 +231,13 @@ export function applySiteOfficialLayoutToSorcery(
 ): SorceryIndicatorsConfig {
   return {
     ...sorcery,
+    mana: {
+      ...SITE_DEFAULT_MANA_CONFIG,
+      quantity: 0,
+      isVisible: false,
+    },
     threshold: {
-      ...sorcery.threshold,
+      ...SITE_DEFAULT_THRESHOLD_CONFIG,
       xPercent: official.threshold.xPercent,
       yPercent: official.threshold.yPercent,
       symbolWidthPercent: official.threshold.symbolWidthPercent,
@@ -490,11 +258,12 @@ export function applySiteOfficialLayoutToSorcery(
       morte: keepQuantities ? (sorcery.threshold.morte || 0) : 0,
     },
     combat: {
-      ...sorcery.combat,
-      siteCombatOption: official.combat.siteCombatOption,
-      selectedType: official.combat.selectedType,
+      ...SITE_DEFAULT_COMBAT_CONFIG,
+      siteCombatOption: official.combat.siteCombatOption || 'attack-only',
+      selectedType: official.combat.selectedType || 'attack-defense',
+      isVisible: true,
       single: {
-        ...sorcery.combat.single,
+        ...SITE_DEFAULT_SINGLE_ATTACK_CONFIG,
         xPercent: official.combat.single.xPercent,
         yPercent: official.combat.single.yPercent,
         widthPercent: official.combat.single.widthPercent,
@@ -502,10 +271,10 @@ export function applySiteOfficialLayoutToSorcery(
         scale: official.combat.single.scale,
         attackXPercent: official.combat.single.attackXPercent,
         attackYPercent: official.combat.single.attackYPercent,
-        value: keepQuantities ? sorcery.combat.single?.value ?? '0' : '0',
+        value: keepQuantities ? (sorcery.combat.single?.value ?? '0') : '0',
       },
       dual: {
-        ...sorcery.combat.dual,
+        ...SITE_DEFAULT_DUAL_COMBAT_CONFIG,
         xPercent: official.combat.dual.xPercent,
         yPercent: official.combat.dual.yPercent,
         widthPercent: official.combat.dual.widthPercent,
@@ -515,8 +284,8 @@ export function applySiteOfficialLayoutToSorcery(
         attackYPercent: official.combat.dual.attackYPercent,
         defenseXPercent: official.combat.dual.defenseXPercent,
         defenseYPercent: official.combat.dual.defenseYPercent,
-        attackValue: keepQuantities ? sorcery.combat.dual?.attackValue ?? '4' : '4',
-        defenseValue: keepQuantities ? sorcery.combat.dual?.defenseValue ?? '5' : '5',
+        attackValue: keepQuantities ? (sorcery.combat.dual?.attackValue ?? '4') : '4',
+        defenseValue: keepQuantities ? (sorcery.combat.dual?.defenseValue ?? '5') : '5',
       },
     },
   };

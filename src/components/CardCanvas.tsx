@@ -518,57 +518,67 @@ export const CardCanvas: React.FC<CardCanvasProps> = ({
             </div>
           )}
 
-          {/* CAMADA 4A: INDICADOR FIXO DE MANA SORCERY (NÃO RENDERIZADO EM CARTAS SITE) */}
-          {cardType !== 'site' && sorceryConfig?.mana && sorceryConfig.mana.isVisible && (
-            <div
-              style={{
-                left: `${sorceryConfig.mana.xPercent}%`,
-                top: `${sorceryConfig.mana.yPercent}%`,
-                width: `${sorceryConfig.mana.widthPercent}%`,
-                height: `${sorceryConfig.mana.heightPercent}%`,
-                opacity: sorceryConfig.mana.opacity,
-                zIndex: sorceryConfig.mana.zIndex || 50,
-                transform: `scale(${sorceryConfig.mana.scale || 1})`,
-                transformOrigin: 'center center',
-              }}
-              className="absolute pointer-events-none select-none flex items-center justify-center"
-              title={`Mana: ${sorceryConfig.mana.quantity}`}
-            >
-              {/* Círculo / Esfera de Mana Oficial */}
-              <img
-                src={sorceryConfig.mana.imageUrl || '/assets/sorcery/mana.png?v=2'}
-                alt="Símbolo de Mana"
-                style={{
-                  objectFit: sorceryConfig.mana.keepAspectRatio ? 'contain' : 'fill',
-                }}
-                className="w-full h-full pointer-events-none select-none"
-              />
+          {/* CAMADA 4A: INDICADOR FIXO DE MANA SORCERY / VIDA (AVATAR) (NÃO RENDERIZADO EM CARTAS SITE) */}
+          {cardType !== 'site' && (() => {
+            const isAvatar = cardType === 'avatar';
+            const attrConfig = isAvatar ? (sorceryConfig?.vida || sorceryConfig?.mana) : sorceryConfig?.mana;
+            if (!attrConfig || !attrConfig.isVisible) return null;
 
-              {/* Número de Mana centralizado sobre a bolinha */}
+            const iconSrc = isAvatar
+              ? (attrConfig.imageUrl || '/assets/sorcery/vida(1).png')
+              : (attrConfig.imageUrl || '/assets/sorcery/mana.png?v=2');
+            const displayValue = attrConfig.quantity ?? (isAvatar ? 20 : 0);
+
+            return (
               <div
                 style={{
-                  fontFamily: getFontCssProperties(sorceryConfig.mana.fontFamily).fontFamily,
-                  fontSize: `${sorceryConfig.mana.fontSizePx || 20}px`,
-                  color: sorceryConfig.mana.fontColor || '#ffffff',
-                  WebkitTextStroke:
-                    sorceryConfig.mana.strokeWidthPx && sorceryConfig.mana.strokeWidthPx > 0
-                      ? `${sorceryConfig.mana.strokeWidthPx}px ${sorceryConfig.mana.strokeColor || '#000000'}`
-                      : 'none',
-                  paintOrder:
-                    sorceryConfig.mana.strokeWidthPx && sorceryConfig.mana.strokeWidthPx > 0
-                      ? 'stroke fill'
-                      : 'normal',
-                  // Sem contorno ou sombras pretas forçadas - renderização 100% fiel à cor escolhida
-                  transform: `translate(${sorceryConfig.mana.textOffsetX || 0}px, ${
-                    sorceryConfig.mana.textOffsetY || 0
-                  }px)`,
+                  left: `${attrConfig.xPercent}%`,
+                  top: `${attrConfig.yPercent}%`,
+                  width: `${attrConfig.widthPercent}%`,
+                  height: `${attrConfig.heightPercent}%`,
+                  opacity: attrConfig.opacity,
+                  zIndex: attrConfig.zIndex || 50,
+                  transform: `scale(${attrConfig.scale || 1})`,
+                  transformOrigin: 'center center',
                 }}
-                className="absolute inset-0 flex items-center justify-center font-bold pointer-events-none select-none leading-none tracking-tight"
+                className="absolute pointer-events-none select-none flex items-center justify-center"
+                title={isAvatar ? `Vida: ${displayValue}` : `Mana: ${displayValue}`}
               >
-                {sorceryConfig.mana.quantity}
+                {/* Ícone de Vida (Gota de Sangue/Vida) ou Esfera de Mana */}
+                <img
+                  src={iconSrc}
+                  alt={isAvatar ? "Símbolo de Vida" : "Símbolo de Mana"}
+                  style={{
+                    objectFit: attrConfig.keepAspectRatio ? 'contain' : 'fill',
+                  }}
+                  className="w-full h-full pointer-events-none select-none"
+                />
+
+                {/* Número de Vida / Mana centralizado sobre o ícone */}
+                <div
+                  style={{
+                    fontFamily: getFontCssProperties(attrConfig.fontFamily).fontFamily,
+                    fontSize: `${attrConfig.fontSizePx || 20}px`,
+                    color: attrConfig.fontColor || '#ffffff',
+                    WebkitTextStroke:
+                      attrConfig.strokeWidthPx && attrConfig.strokeWidthPx > 0
+                        ? `${attrConfig.strokeWidthPx}px ${attrConfig.strokeColor || '#000000'}`
+                        : 'none',
+                    paintOrder:
+                      attrConfig.strokeWidthPx && attrConfig.strokeWidthPx > 0
+                        ? 'stroke fill'
+                        : 'normal',
+                    transform: `translate(${attrConfig.textOffsetX || 0}px, ${
+                      attrConfig.textOffsetY || 0
+                    }px)`,
+                  }}
+                  className="absolute inset-0 flex items-center justify-center font-bold pointer-events-none select-none leading-none tracking-tight"
+                >
+                  {displayValue}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* CAMADA 4B: THRESHOLD (SITE: LIVRE POSICIONAMENTO X/Y; DEMAIS TIPOS: FIXO/AO LADO DA MANA) */}
           {(() => {
@@ -578,6 +588,7 @@ export const CardCanvas: React.FC<CardCanvasProps> = ({
             const allowedThresholdElements = getAllowedThresholdElements(effectiveAttribute, cardType);
 
             if (
+              cardType === 'avatar' ||
               allowedThresholdElements.length === 0 ||
               !sorceryConfig?.threshold ||
               !(sorceryConfig.threshold.isVisible ?? true)
@@ -773,7 +784,7 @@ export const CardCanvas: React.FC<CardCanvasProps> = ({
                       ? 'hover:ring-1 hover:ring-rose-300 cursor-grab active:cursor-grabbing'
                       : ''
                   }`}
-                  title={`Criatura com Ataque: ${single.value}`}
+                  title={`${cardType === 'avatar' ? 'Ataque do Avatar' : 'Criatura com Ataque'}: ${single.value}`}
                 >
                   {/* Imagem de Fundo Exclusiva do Bloco A */}
                   {single.imageUrl && (

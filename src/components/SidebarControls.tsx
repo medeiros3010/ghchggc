@@ -1873,22 +1873,24 @@ export const SidebarControls: React.FC<SidebarControlsProps> = ({
                   </button>
                 )}
 
-                <button
-                  type="button"
-                  onClick={() => setSorcerySubTab('order')}
-                  className={`py-1.5 px-1 rounded-md text-[10.5px] font-semibold flex flex-col items-center justify-center gap-0.5 transition-colors ${
-                    sorcerySubTab === 'order'
-                      ? 'bg-white text-indigo-700 shadow-xs'
-                      : 'text-slate-600 hover:text-slate-900'
-                  }`}
-                  title="Modificar a ordem de preenchimento dos elementos"
-                >
-                  <div className="flex items-center gap-1">
-                    <Sliders className="w-3.5 h-3.5" />
-                    {isManaThresholdLocked && <Lock className="w-2.5 h-2.5 text-slate-400" />}
-                  </div>
-                  <span>Ordem Elem</span>
-                </button>
+                {cardType !== 'avatar' && (
+                  <button
+                    type="button"
+                    onClick={() => setSorcerySubTab('order')}
+                    className={`py-1.5 px-1 rounded-md text-[10.5px] font-semibold flex flex-col items-center justify-center gap-0.5 transition-colors ${
+                      sorcerySubTab === 'order'
+                        ? 'bg-white text-indigo-700 shadow-xs'
+                        : 'text-slate-600 hover:text-slate-900'
+                    }`}
+                    title="Modificar a ordem de preenchimento dos elementos"
+                  >
+                    <div className="flex items-center gap-1">
+                      <Sliders className="w-3.5 h-3.5" />
+                      {isManaThresholdLocked && <Lock className="w-2.5 h-2.5 text-slate-400" />}
+                    </div>
+                    <span>Ordem Elem</span>
+                  </button>
+                )}
               </div>
 
               {/* Mensagem de bloqueio do cadeado quando usuário clica em sub-aba avançada */}
@@ -1919,129 +1921,142 @@ export const SidebarControls: React.FC<SidebarControlsProps> = ({
                  ======================================================== */}
               {sorcerySubTab === 'values' && (
                 <div className="space-y-4">
-                  {/* SEÇÃO 1: QUANTIDADE DE MANA (Oculto em Site) */}
-                  {cardType !== 'site' && (
-                    <div className="bg-gradient-to-br from-slate-50 to-slate-100/70 border border-slate-200 rounded-xl p-4 shadow-2xs space-y-3.5">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-indigo-500" />
-                          1. Quantidade de Mana
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setSorcerySubTab('position')}
-                          className="text-[10px] text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1 font-medium"
-                        >
-                          <Settings2 className="w-3 h-3" />
-                          <span>Ajustar Local</span>
-                        </button>
-                      </div>
+                  {/* SEÇÃO 1: QUANTIDADE DE MANA / VIDA (AVATAR) (Oculto em Site) */}
+                  {cardType !== 'site' && (() => {
+                    const isAvatar = cardType === 'avatar';
+                    const attrConfig = isAvatar ? (sorceryConfig.vida || sorceryConfig.mana) : sorceryConfig.mana;
+                    const displayQty = attrConfig.quantity ?? (isAvatar ? 20 : 0);
+                    const iconUrl = isAvatar
+                      ? (attrConfig.imageUrl || '/assets/sorcery/vida(1).png')
+                      : (attrConfig.imageUrl || '/assets/sorcery/mana.png?v=2');
 
-                      {/* Card visual de Mana com preview da esfera e stepper */}
-                      <div className="flex items-center gap-4 bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-xs">
-                        {/* Visualizador da esfera com número */}
-                        <div className="w-16 h-16 rounded-full relative flex items-center justify-center shrink-0 drop-shadow-md bg-slate-900/10">
-                          <img
-                            src={sorceryConfig.mana.imageUrl || '/assets/sorcery/mana.png?v=2'}
-                            alt="Esfera de Mana"
-                            className="w-full h-full object-contain pointer-events-none select-none"
-                          />
-                          <span
-                            style={{
-                              fontFamily: getFontCssProperties(sorceryConfig.mana.fontFamily).fontFamily,
-                              fontSize: '22px',
-                              color: sorceryConfig.mana.fontColor || '#ffffff',
-                              WebkitTextStroke:
-                                sorceryConfig.mana.strokeWidthPx && sorceryConfig.mana.strokeWidthPx > 0
-                                  ? `${sorceryConfig.mana.strokeWidthPx}px ${sorceryConfig.mana.strokeColor || '#000000'}`
-                                  : 'none',
-                              paintOrder:
-                                sorceryConfig.mana.strokeWidthPx && sorceryConfig.mana.strokeWidthPx > 0
-                                  ? 'stroke fill'
-                                  : 'normal',
-                            }}
-                            className="absolute inset-0 flex items-center justify-center font-bold pointer-events-none select-none leading-none"
-                          >
-                            {sorceryConfig.mana.quantity}
+                    return (
+                      <div className="bg-gradient-to-br from-slate-50 to-slate-100/70 border border-slate-200 rounded-xl p-4 shadow-2xs space-y-3.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
+                            <span className={`w-2 h-2 rounded-full ${isAvatar ? 'bg-red-500' : 'bg-indigo-500'}`} />
+                            {isAvatar ? '1. Quantidade de Vida' : '1. Quantidade de Mana'}
                           </span>
+                          <button
+                            type="button"
+                            onClick={() => setSorcerySubTab('position')}
+                            className="text-[10px] text-indigo-600 hover:text-indigo-800 hover:underline flex items-center gap-1 font-medium"
+                          >
+                            <Settings2 className="w-3 h-3" />
+                            <span>Ajustar Local</span>
+                          </button>
                         </div>
 
-                        {/* Controles de Incremento e Campo Direto */}
-                        <div className="flex-1 space-y-1.5">
-                          <label className="text-[11px] font-semibold text-slate-600 block">
-                            Custo de Mana da Carta:
-                          </label>
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() =>
-                              onUpdateSorceryMana({
-                                quantity: Math.max(0, sorceryConfig.mana.quantity - 1),
-                              })
-                              }
-                              title="Diminuir mana"
-                              className="w-10 h-10 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 flex items-center justify-center font-bold text-slate-700 transition-colors shadow-2xs text-lg disabled:opacity-40"
-                              disabled={sorceryConfig.mana.quantity <= 0}
-                            >
-                              <Minus className="w-4 h-4" />
-                            </button>
-
-                            <input
-                              type="number"
-                              min="0"
-                              max="99"
-                              value={sorceryConfig.mana.quantity}
-                              onChange={(e) => {
-                                const val = parseInt(e.target.value, 10);
-                                onUpdateSorceryMana({
-                                  quantity: isNaN(val) || val < 0 ? 0 : val,
-                                });
-                              }}
-                              className="w-20 h-10 text-center text-xl font-black text-slate-900 bg-white border-2 border-indigo-400 focus:border-indigo-600 rounded-lg outline-none shadow-inner"
+                        {/* Card visual de Mana / Vida com preview do ícone e stepper */}
+                        <div className="flex items-center gap-4 bg-white p-3.5 rounded-xl border border-slate-200/90 shadow-xs">
+                          {/* Visualizador do ícone com número */}
+                          <div className="w-16 h-16 rounded-full relative flex items-center justify-center shrink-0 drop-shadow-md bg-slate-900/10">
+                            <img
+                              src={iconUrl}
+                              alt={isAvatar ? 'Gota de Vida' : 'Esfera de Mana'}
+                              className="w-full h-full object-contain pointer-events-none select-none"
                             />
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                              onUpdateSorceryMana({
-                                quantity: sorceryConfig.mana.quantity + 1,
-                              })
-                              }
-                              title="Aumentar mana"
-                              className="w-10 h-10 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 flex items-center justify-center font-bold text-slate-700 transition-colors shadow-2xs text-lg"
+                            <span
+                              style={{
+                                fontFamily: getFontCssProperties(attrConfig.fontFamily).fontFamily,
+                                fontSize: `${attrConfig.fontSizePx || 22}px`,
+                                color: attrConfig.fontColor || '#ffffff',
+                                WebkitTextStroke:
+                                  attrConfig.strokeWidthPx && attrConfig.strokeWidthPx > 0
+                                    ? `${attrConfig.strokeWidthPx}px ${attrConfig.strokeColor || '#000000'}`
+                                    : 'none',
+                                paintOrder:
+                                  attrConfig.strokeWidthPx && attrConfig.strokeWidthPx > 0
+                                    ? 'stroke fill'
+                                    : 'normal',
+                                transform: `translate(${attrConfig.textOffsetX || 0}px, ${
+                                  attrConfig.textOffsetY || 0
+                                }px)`,
+                              }}
+                              className="absolute inset-0 flex items-center justify-center font-bold pointer-events-none select-none leading-none"
                             >
-                              <Plus className="w-4 h-4" />
-                            </button>
+                              {displayQty}
+                            </span>
+                          </div>
+
+                          {/* Controles de Incremento e Campo Direto */}
+                          <div className="flex-1 space-y-1.5">
+                            <label className="text-[11px] font-semibold text-slate-600 block">
+                              {isAvatar ? 'Vida do Avatar:' : 'Custo de Mana da Carta:'}
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  onUpdateSorceryMana({
+                                    quantity: Math.max(0, displayQty - 1),
+                                  })
+                                }
+                                title={isAvatar ? 'Diminuir vida' : 'Diminuir mana'}
+                                className="w-10 h-10 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 flex items-center justify-center font-bold text-slate-700 transition-colors shadow-2xs text-lg disabled:opacity-40"
+                                disabled={displayQty <= 0}
+                              >
+                                <Minus className="w-4 h-4" />
+                              </button>
+
+                              <input
+                                type="number"
+                                min="0"
+                                max="999"
+                                value={displayQty}
+                                onChange={(e) => {
+                                  const val = parseInt(e.target.value, 10);
+                                  onUpdateSorceryMana({
+                                    quantity: isNaN(val) || val < 0 ? 0 : val,
+                                  });
+                                }}
+                                className="w-20 h-10 text-center text-xl font-black text-slate-900 bg-white border-2 border-indigo-400 focus:border-indigo-600 rounded-lg outline-none shadow-inner"
+                              />
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  onUpdateSorceryMana({
+                                    quantity: displayQty + 1,
+                                  })
+                                }
+                                title={isAvatar ? 'Aumentar vida' : 'Aumentar mana'}
+                                className="w-10 h-10 rounded-lg border border-slate-300 bg-slate-50 hover:bg-slate-100 active:bg-slate-200 flex items-center justify-center font-bold text-slate-700 transition-colors shadow-2xs text-lg"
+                              >
+                                <Plus className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Botões Rápidos */}
+                        <div className="space-y-1">
+                          <span className="text-[10px] text-slate-500 font-medium block">
+                            Atalhos rápidos:
+                          </span>
+                          <div className={`grid ${isAvatar ? 'grid-cols-5' : 'grid-cols-7'} gap-1`}>
+                            {(isAvatar ? [10, 15, 20, 25, 30] : [0, 1, 2, 3, 4, 5, 6]).map((num) => (
+                              <button
+                                key={num}
+                                type="button"
+                                onClick={() => onUpdateSorceryMana({ quantity: num })}
+                                className={`py-1 text-xs font-bold rounded border transition-colors ${
+                                  displayQty === num
+                                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
+                                    : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
+                                }`}
+                              >
+                                {num}
+                              </button>
+                            ))}
                           </div>
                         </div>
                       </div>
+                    );
+                  })()}
 
-                      {/* Botões Rápidos de Mana (0 a 8) */}
-                      <div className="space-y-1">
-                        <span className="text-[10px] text-slate-500 font-medium block">
-                          Atalhos rápidos:
-                        </span>
-                        <div className="grid grid-cols-7 gap-1">
-                          {[0, 1, 2, 3, 4, 5, 6].map((num) => (
-                            <button
-                              key={num}
-                              type="button"
-                              onClick={() => onUpdateSorceryMana({ quantity: num })}
-                              className={`py-1 text-xs font-bold rounded border transition-colors ${
-                                sorceryConfig.mana.quantity === num
-                                  ? 'bg-indigo-600 text-white border-indigo-600 shadow-2xs'
-                                  : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'
-                              }`}
-                            >
-                              {num}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* SEÇÃO 2: THRESHOLD DA CARTA (4 ELEMENTOS) */}
+                  {/* SEÇÃO 2: THRESHOLD DA CARTA (4 ELEMENTOS) (Oculto no Avatar) */}
+                  {cardType !== 'avatar' && (
                   <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-2xs space-y-3.5">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
@@ -2724,6 +2739,7 @@ export const SidebarControls: React.FC<SidebarControlsProps> = ({
                       </button>
                     </div>
                   </div>
+                  )}
                 </div>
               )}
 
@@ -2732,30 +2748,42 @@ export const SidebarControls: React.FC<SidebarControlsProps> = ({
                  ======================================================== */}
               {!isManaThresholdLocked && sorcerySubTab === 'position' && (
                 <div className="space-y-4">
-                  {/* BLOCO 1: LOCAL E TAMANHO DA MANA (Oculto em Site) */}
+                  {/* BLOCO 1: LOCAL E TAMANHO DA MANA / VIDA (Oculto em Site) */}
                   {cardType !== 'site' && (
                     <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-3">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1.5">
                           <Move className="w-4 h-4 text-indigo-600" />
                           <span className="text-xs font-bold text-slate-800">
-                            Local e Tamanho da Mana
+                            {cardType === 'avatar' ? 'Local e Tamanho da Vida' : 'Local e Tamanho da Mana'}
                           </span>
                         </div>
                         <button
                           type="button"
                           onClick={() =>
-                            onUpdateSorceryMana({
-                              xPercent: 5.5,
-                              yPercent: 4.8,
-                              widthPercent: 9.5,
-                              heightPercent: 6.8,
-                              scale: 1.0,
-                              opacity: 1.0,
-                              zIndex: 60,
-                            })
+                            onUpdateSorceryMana(
+                              cardType === 'avatar'
+                                ? {
+                                    xPercent: 6.4,
+                                    yPercent: 2.8,
+                                    widthPercent: 9.5,
+                                    heightPercent: 6.8,
+                                    scale: 0.85,
+                                    opacity: 1.0,
+                                    zIndex: 60,
+                                  }
+                                : {
+                                    xPercent: 5.5,
+                                    yPercent: 4.8,
+                                    widthPercent: 9.5,
+                                    heightPercent: 6.8,
+                                    scale: 1.0,
+                                    opacity: 1.0,
+                                    zIndex: 60,
+                                  }
+                            )
                           }
-                          title="Restaurar valores padrão oficiais da Mana"
+                          title={cardType === 'avatar' ? "Restaurar valores padrão oficiais da Vida" : "Restaurar valores padrão oficiais da Mana"}
                           className="text-[10px] text-slate-500 hover:text-indigo-600 flex items-center gap-1"
                         >
                           <RotateCcw className="w-3 h-3" />
@@ -2763,9 +2791,11 @@ export const SidebarControls: React.FC<SidebarControlsProps> = ({
                         </button>
                       </div>
 
-                      {/* Toggle Exibir Mana */}
+                      {/* Toggle Exibir Mana / Vida */}
                       <div className="flex items-center justify-between p-2 bg-white rounded-lg border border-slate-200 text-xs">
-                        <span className="font-semibold text-slate-700">Exibir Bolinha de Mana</span>
+                        <span className="font-semibold text-slate-700">
+                          {cardType === 'avatar' ? 'Exibir Gota de Vida' : 'Exibir Bolinha de Mana'}
+                        </span>
                         <button
                           type="button"
                           onClick={() => onUpdateSorceryMana({ isVisible: !sorceryConfig.mana.isVisible })}
@@ -2826,10 +2856,10 @@ export const SidebarControls: React.FC<SidebarControlsProps> = ({
                         </div>
                       </div>
 
-                      {/* Escala / Tamanho da Mana */}
+                      {/* Escala / Tamanho da Mana / Vida */}
                       <div>
                         <div className="flex justify-between text-[11px] text-slate-600 mb-1">
-                          <span>Escala da Bolinha:</span>
+                          <span>{cardType === 'avatar' ? 'Escala da Gota:' : 'Escala da Bolinha:'}</span>
                           <span className="font-mono font-semibold">
                             {Math.round((sorceryConfig.mana.scale || 1.0) * 100)}%
                           </span>
@@ -2907,7 +2937,8 @@ export const SidebarControls: React.FC<SidebarControlsProps> = ({
                     </div>
                   )}
 
-                  {/* BLOCO 2: LOCAL E ESPAÇAMENTOS DO THRESHOLD */}
+                  {/* BLOCO 2: LOCAL E ESPAÇAMENTOS DO THRESHOLD (Oculto no Avatar) */}
+                  {cardType !== 'avatar' && (
                   <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
@@ -3219,6 +3250,7 @@ export const SidebarControls: React.FC<SidebarControlsProps> = ({
                       )}
                     </div>
                   </div>
+                  )}
                 </div>
               )}
 
@@ -3232,7 +3264,7 @@ export const SidebarControls: React.FC<SidebarControlsProps> = ({
                       <div className="flex items-center gap-1.5">
                         <Type className="w-4 h-4 text-indigo-600" />
                         <span className="text-xs font-bold text-slate-800">
-                          Tipografia do Número de Mana
+                          {cardType === 'avatar' ? 'Tipografia do Número de Vida' : 'Tipografia do Número de Mana'}
                         </span>
                       </div>
                       <button
@@ -3438,9 +3470,9 @@ export const SidebarControls: React.FC<SidebarControlsProps> = ({
               )}
 
               {/* ========================================================
-                  VISTA 4: ORDEM DOS ELEMENTOS (SUBIR / DESCER)
+                  VISTA 4: ORDEM DOS ELEMENTOS (SUBIR / DESCER) (Oculto no Avatar)
                  ======================================================== */}
-              {!isManaThresholdLocked && sorcerySubTab === 'order' && (
+              {cardType !== 'avatar' && !isManaThresholdLocked && sorcerySubTab === 'order' && (
                 <div className="space-y-4">
                   <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-3">
                     <div className="flex items-center justify-between">
@@ -3680,14 +3712,14 @@ export const SidebarControls: React.FC<SidebarControlsProps> = ({
                   Alterne entre somente Ataque ou Ataque + Defesa. A imagem correspondente é trocada automaticamente.
                 </p>
 
-                <div className="grid grid-cols-2 gap-2 pt-1">
+                <div className={cardType === 'avatar' ? 'pt-1' : 'grid grid-cols-2 gap-2 pt-1'}>
                   {/* Opção 1: Somente ATK */}
                   <button
                     type="button"
                     onClick={() => {
                       onUpdateSorceryCombat({
                         selectedType: 'attack-only',
-                        attack: combat.single?.value ?? '0',
+                        attack: combat.single?.value ?? (cardType === 'avatar' ? '2' : '0'),
                         defense: null,
                       });
                     }}
@@ -3716,70 +3748,74 @@ export const SidebarControls: React.FC<SidebarControlsProps> = ({
 
                     <div>
                       <span className="font-bold text-xs text-slate-900 block leading-tight">
-                        Somente ATK
+                        {cardType === 'avatar' ? 'Ataque do Avatar (ATK Único)' : 'Somente ATK'}
                       </span>
                       <span className="text-[10px] text-slate-500 block mt-0.5 leading-snug">
-                        Criatura com apenas Ataque (imagem individual).
+                        {cardType === 'avatar'
+                          ? 'O Avatar possui exclusivamente o atributo de Ataque com espadas cruzadas.'
+                          : 'Criatura com apenas Ataque (imagem individual).'}
                       </span>
                     </div>
 
                     <div className="mt-2.5 pt-2 border-t border-rose-100/80 flex items-center justify-between">
                       <span className="text-[9.5px] font-mono text-slate-500">Valor Atual:</span>
                       <span className="text-[11px] font-bold font-mono text-rose-700">
-                        {combat.single?.value ?? '0'}
+                        {combat.single?.value ?? (cardType === 'avatar' ? '2' : '0')}
                       </span>
                     </div>
                   </button>
 
-                  {/* Opção 2: ATK + DEF */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onUpdateSorceryCombat({
-                        selectedType: 'attack-defense',
-                        attack: combat.dual?.attackValue ?? '4',
-                        defense: combat.dual?.defenseValue ?? '5',
-                      });
-                    }}
-                    className={`relative p-3 rounded-xl border text-left transition-all flex flex-col justify-between ${
-                      selectedType === 'attack-defense'
-                        ? 'border-indigo-500 bg-indigo-50/70 ring-2 ring-indigo-500/30 shadow-xs'
-                        : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between w-full mb-2">
-                      <div
-                        className={`w-7 h-7 rounded-lg flex items-center justify-center ${
-                          selectedType === 'attack-defense'
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-slate-100 text-slate-500'
-                        }`}
-                      >
-                        <Shield className="w-4 h-4" />
-                      </div>
-                      {selectedType === 'attack-defense' && (
-                        <div className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[11px]">
-                          <Check className="w-3 h-3 stroke-[3]" />
+                  {/* Opção 2: ATK + DEF (Exclusivo para Minion e Site) */}
+                  {cardType !== 'avatar' && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onUpdateSorceryCombat({
+                          selectedType: 'attack-defense',
+                          attack: combat.dual?.attackValue ?? '4',
+                          defense: combat.dual?.defenseValue ?? '5',
+                        });
+                      }}
+                      className={`relative p-3 rounded-xl border text-left transition-all flex flex-col justify-between ${
+                        selectedType === 'attack-defense'
+                          ? 'border-indigo-500 bg-indigo-50/70 ring-2 ring-indigo-500/30 shadow-xs'
+                          : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full mb-2">
+                        <div
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center ${
+                            selectedType === 'attack-defense'
+                              ? 'bg-indigo-600 text-white'
+                              : 'bg-slate-100 text-slate-500'
+                          }`}
+                        >
+                          <Shield className="w-4 h-4" />
                         </div>
-                      )}
-                    </div>
+                        {selectedType === 'attack-defense' && (
+                          <div className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[11px]">
+                            <Check className="w-3 h-3 stroke-[3]" />
+                          </div>
+                        )}
+                      </div>
 
-                    <div>
-                      <span className="font-bold text-xs text-slate-900 block leading-tight">
-                        ATK + DEF
-                      </span>
-                      <span className="text-[10px] text-slate-500 block mt-0.5 leading-snug">
-                        Criatura com Ataque e Defesa (imagem dupla).
-                      </span>
-                    </div>
+                      <div>
+                        <span className="font-bold text-xs text-slate-900 block leading-tight">
+                          ATK + DEF
+                        </span>
+                        <span className="text-[10px] text-slate-500 block mt-0.5 leading-snug">
+                          Criatura com Ataque e Defesa (imagem dupla).
+                        </span>
+                      </div>
 
-                    <div className="mt-2.5 pt-2 border-t border-indigo-100/80 flex items-center justify-between">
-                      <span className="text-[9.5px] font-mono text-slate-500">Valores:</span>
-                      <span className="text-[11px] font-bold font-mono text-indigo-700">
-                        {combat.dual?.attackValue ?? '4'} / {combat.dual?.defenseValue ?? '5'}
-                      </span>
-                    </div>
-                  </button>
+                      <div className="mt-2.5 pt-2 border-t border-indigo-100/80 flex items-center justify-between">
+                        <span className="text-[9.5px] font-mono text-slate-500">Valores:</span>
+                        <span className="text-[11px] font-bold font-mono text-indigo-700">
+                          {combat.dual?.attackValue ?? '4'} / {combat.dual?.defenseValue ?? '5'}
+                        </span>
+                      </div>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -4070,21 +4106,25 @@ export const SidebarControls: React.FC<SidebarControlsProps> = ({
                         isVisible={combat.isVisible}
                         isLocked={false}
                         onUnlock={onToggleCombatLock}
-                        onAddDefense={(defVal) => {
-                          onUpdateSorceryCombat({
-                            selectedType: 'attack-defense',
-                            single: {
-                              ...(combat.single || DEFAULT_SINGLE_ATTACK_CONFIG),
-                            },
-                            dual: {
-                              ...(combat.dual || DEFAULT_DUAL_COMBAT_CONFIG),
-                              attackValue: combat.single?.value || '0',
-                              defenseValue: defVal,
-                            },
-                            attack: combat.single?.value || '0',
-                            defense: defVal,
-                          });
-                        }}
+                        onAddDefense={
+                          cardType === 'avatar'
+                            ? undefined
+                            : (defVal) => {
+                                onUpdateSorceryCombat({
+                                  selectedType: 'attack-defense',
+                                  single: {
+                                    ...(combat.single || DEFAULT_SINGLE_ATTACK_CONFIG),
+                                  },
+                                  dual: {
+                                    ...(combat.dual || DEFAULT_DUAL_COMBAT_CONFIG),
+                                    attackValue: combat.single?.value || '0',
+                                    defenseValue: defVal,
+                                  },
+                                  attack: combat.single?.value || '0',
+                                  defense: defVal,
+                                });
+                              }
+                        }
                         onUpdate={(updates) =>
                           onUpdateSorceryCombat({
                             single: {

@@ -45,6 +45,7 @@ import {
 import {
   DEFAULT_CARD_ART,
   DEFAULT_CARD_FRAME,
+  DEFAULT_AVATAR_FRAME_URL,
   DEFAULT_CARD_SYMBOLS,
   DEFAULT_MANA_SYMBOL,
   DEFAULT_ATTACK_SYMBOL,
@@ -232,16 +233,28 @@ export default function App() {
   };
 
   const handleUpdateSorceryMana = (updates: Partial<SorceryManaConfig>) => {
-    updateActiveCardState((state) => ({
-      ...state,
-      sorceryConfig: {
-        ...state.sorceryConfig,
-        mana: {
-          ...state.sorceryConfig.mana,
-          ...updates,
+    updateActiveCardState((state) => {
+      const isAvatar = state.cardType === 'avatar';
+      const updatedMana = {
+        ...state.sorceryConfig.mana,
+        ...updates,
+      };
+      return {
+        ...state,
+        sorceryConfig: {
+          ...state.sorceryConfig,
+          mana: updatedMana,
+          ...(isAvatar || state.sorceryConfig.vida
+            ? {
+                vida: {
+                  ...(state.sorceryConfig.vida || state.sorceryConfig.mana),
+                  ...updates,
+                },
+              }
+            : {}),
         },
-      },
-    }));
+      };
+    });
   };
 
   const handleUpdateSorceryThreshold = (updates: Partial<SorceryThresholdConfig>) => {
@@ -416,7 +429,107 @@ export default function App() {
     setIsCombatSelected(false);
   };
 
+  const ensureAvatarState = (existing: CardTypeState): { updated: CardTypeState; changed: boolean } => {
+    let changed = false;
+    let updated = existing;
+
+    if (!existing.frameConfig?.imageUrl) {
+      updated = {
+        ...updated,
+        frameConfig: {
+          ...updated.frameConfig,
+          imageUrl: DEFAULT_AVATAR_FRAME_URL,
+          opacity: 1,
+          fit: 'fill',
+          isVisible: true,
+        },
+      };
+      changed = true;
+    }
+
+    const currentCombat = updated.sorceryConfig?.combat;
+    if (
+      !currentCombat ||
+      currentCombat.selectedType !== 'attack-only' ||
+      !currentCombat.single?.imageUrl ||
+      currentCombat.single.imageUrl.includes('attack_single.png') ||
+      currentCombat.single.imageUrl.includes('attack_defense.png')
+    ) {
+      const defaultAvatarCombat = getDefaultCardTypeState('avatar').sorceryConfig.combat;
+      updated = {
+        ...updated,
+        sorceryConfig: {
+          ...updated.sorceryConfig,
+          combat: {
+            ...defaultAvatarCombat,
+            ...(currentCombat || {}),
+            selectedType: 'attack-only',
+            isVisible: true,
+            single: {
+              ...defaultAvatarCombat.single,
+              ...(currentCombat?.single || {}),
+              imageUrl: '/assets/sorcery/atk.png',
+              value: currentCombat?.single?.value !== undefined && currentCombat.single.value !== null ? currentCombat.single.value : '2',
+              attackXPercent: 50.0,
+              attackYPercent: 50.0,
+            },
+            dual: {
+              ...defaultAvatarCombat.dual,
+              attackValue: currentCombat?.single?.value !== undefined && currentCombat.single.value !== null ? currentCombat.single.value : '2',
+              defenseValue: '',
+            },
+            attack: currentCombat?.single?.value !== undefined && currentCombat.single.value !== null ? currentCombat.single.value : '2',
+            defense: null,
+          },
+        },
+      };
+      changed = true;
+    }
+
+    const currentVida = updated.sorceryConfig?.vida || updated.sorceryConfig?.mana;
+    if (
+      !updated.sorceryConfig?.vida ||
+      !currentVida?.imageUrl ||
+      currentVida.imageUrl.includes('mana.png')
+    ) {
+      const defaultAvatarVida = getDefaultCardTypeState('avatar').sorceryConfig.vida || getDefaultCardTypeState('avatar').sorceryConfig.mana;
+      const vidaQty = currentVida?.quantity !== undefined && currentVida.quantity !== 0 ? currentVida.quantity : 20;
+      const validVida = {
+        ...defaultAvatarVida,
+        ...(currentVida || {}),
+        quantity: vidaQty,
+        imageUrl: '/assets/sorcery/vida(1).png',
+      };
+      updated = {
+        ...updated,
+        sorceryConfig: {
+          ...updated.sorceryConfig,
+          mana: validVida,
+          vida: validVida,
+        },
+      };
+      changed = true;
+    }
+
+    return { updated, changed };
+  };
+
   const handleResumeCard = (typeId: CardTypeId) => {
+    if (typeId === 'avatar') {
+      setCardStates((prevAll) => {
+        const existing = prevAll.avatar || getDefaultCardTypeState('avatar');
+        const { updated, changed } = ensureAvatarState(existing);
+        if (changed) {
+          saveStoredCardTypeState('avatar', updated);
+          return {
+            ...prevAll,
+            avatar: updated,
+          };
+        }
+        return prevAll;
+      });
+    }
+
     setSelectedCardType(typeId);
     setLastActiveCardType(typeId);
     setSelectedBoxId('box-title');
@@ -429,6 +542,21 @@ export default function App() {
       setIsStartingNewCard(false);
       setSelectionStep('attribute');
       return;
+    }
+
+    if (typeId === 'avatar') {
+      setCardStates((prevAll) => {
+        const existing = prevAll.avatar || getDefaultCardTypeState('avatar');
+        const { updated, changed } = ensureAvatarState(existing);
+        if (changed) {
+          saveStoredCardTypeState('avatar', updated);
+          return {
+            ...prevAll,
+            avatar: updated,
+          };
+        }
+        return prevAll;
+      });
     }
 
     setSelectedCardType(typeId);
@@ -566,6 +694,7 @@ export default function App() {
     updateActiveCardState((state) => {
       const prevCombat = state.sorceryConfig.combat;
       const isDualActive =
+        activeCardType !== 'avatar' &&
         prevCombat.selectedType === 'attack-defense' && !!prevCombat.dual?.defenseValue;
       return {
         ...state,
@@ -1148,35 +1277,45 @@ export default function App() {
         {/* Atributos Oficiais de Sorcery no Topbar (Apenas no Modo Administrador) */}
         {editorMode === 'admin' && (
           <div className="flex items-center gap-2 px-2.5 py-1 bg-[#302D27] border border-[#65543C] rounded-lg">
-            {/* Mana (Oculto em Site) */}
-            {selectedCardType !== 'site' && (
-              <>
-                <div className="flex items-center gap-1.5" title="Custo de Mana da Carta">
-                  <div className="w-5 h-5 rounded-full relative flex items-center justify-center shrink-0">
-                    <img
-                      src={sorceryConfig.mana.imageUrl || '/assets/sorcery/mana.png?v=2'}
-                      alt="Mana"
-                      className="w-full h-full object-contain pointer-events-none select-none"
+            {/* Mana / Vida (Oculto em Site, substituído por Vida no Avatar) */}
+            {selectedCardType !== 'site' && (() => {
+              const isAvatar = selectedCardType === 'avatar';
+              const attrConfig = isAvatar ? (sorceryConfig.vida || sorceryConfig.mana) : sorceryConfig.mana;
+              const displayVal = attrConfig.quantity ?? (isAvatar ? 20 : 0);
+              const iconSrc = isAvatar
+                ? (attrConfig.imageUrl || '/assets/sorcery/vida(1).png')
+                : (attrConfig.imageUrl || '/assets/sorcery/mana.png?v=2');
+
+              return (
+                <>
+                  <div className="flex items-center gap-1.5" title={isAvatar ? 'Vida da Carta' : 'Custo de Mana da Carta'}>
+                    <div className="w-5 h-5 rounded-full relative flex items-center justify-center shrink-0">
+                      <img
+                        src={iconSrc}
+                        alt={isAvatar ? 'Vida' : 'Mana'}
+                        className="w-full h-full object-contain pointer-events-none select-none"
+                      />
+                    </div>
+                    <span className="text-[11px] font-medium text-[#B5A995]">{isAvatar ? 'Vida:' : 'Mana:'}</span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="999"
+                      value={displayVal}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        handleUpdateSorceryMana({ quantity: isNaN(val) || val < 0 ? 0 : val });
+                      }}
+                      className="w-10 h-7 text-center text-xs font-bold text-[#E8DECA] bg-[#24221E] border border-[#453B2D] focus:border-[#C5A675] rounded focus:outline-none"
                     />
                   </div>
-                  <span className="text-[11px] font-medium text-[#B5A995]">Mana:</span>
-                  <input
-                    type="number"
-                    min="0"
-                    max="99"
-                    value={sorceryConfig.mana.quantity}
-                    onChange={(e) => {
-                      const val = parseInt(e.target.value, 10);
-                      handleUpdateSorceryMana({ quantity: isNaN(val) || val < 0 ? 0 : val });
-                    }}
-                    className="w-10 h-7 text-center text-xs font-bold text-[#E8DECA] bg-[#24221E] border border-[#453B2D] focus:border-[#C5A675] rounded focus:outline-none"
-                  />
-                </div>
-                <div className="h-4 w-px bg-[#453B2D]" />
-              </>
-            )}
+                  <div className="h-4 w-px bg-[#453B2D]" />
+                </>
+              );
+            })()}
 
-            {/* Threshold (9 Modelos: Fogo, Água, Terra, Ar, Espírito, Matéria, Vazio, Vida, Morte) */}
+            {/* Threshold (9 Modelos: Fogo, Água, Terra, Ar, Espírito, Matéria, Vazio, Vida, Morte) - Oculto no Avatar */}
+            {selectedCardType !== 'avatar' && (
             <div className="flex items-center gap-1" title="Thresholds (Fogo / Água / Terra / Ar / Espírito / Matéria / Vazio / Vida / Morte)">
               <span className="text-[11px] font-medium text-[#B5A995] mr-0.5">Threshold:</span>
               <div className="flex items-center gap-1">
@@ -1236,6 +1375,7 @@ export default function App() {
                 </span>
               </div>
             </div>
+            )}
 
             {hasCombatAttributes(selectedCardType) && (
               <>
@@ -1264,28 +1404,32 @@ export default function App() {
                     />
                   </div>
 
-                  <span className="text-[#453B2D] font-bold">|</span>
+                  {selectedCardType !== 'avatar' && (
+                    <>
+                      <span className="text-[#453B2D] font-bold">|</span>
 
-                  <div className="flex items-center gap-1">
-                    <Shield className="w-3.5 h-3.5 text-[#8CBED6]" />
-                    <label htmlFor="topbar-defense" className="text-[11px] font-medium text-[#B5A995]">
-                      DEF:
-                    </label>
-                    <input
-                      id="topbar-defense"
-                      type="text"
-                      placeholder="vazio"
-                      maxLength={4}
-                      value={
-                        sorceryConfig.combat.selectedType === 'attack-defense'
-                          ? (sorceryConfig.combat.dual?.defenseValue ?? '')
-                          : ''
-                      }
-                      onChange={(e) => handleTopbarDefenseChange(e.target.value)}
-                      className="w-10 h-7 text-center text-xs font-bold font-mono text-[#E8DECA] bg-[#24221E] border border-[#453B2D] focus:border-[#C5A675] rounded focus:outline-none placeholder:text-[10px] placeholder:text-[#8F8270]"
-                      title="Valor de Defesa (Deixe vazio para usar apenas Ataque individual)"
-                    />
-                  </div>
+                      <div className="flex items-center gap-1">
+                        <Shield className="w-3.5 h-3.5 text-[#8CBED6]" />
+                        <label htmlFor="topbar-defense" className="text-[11px] font-medium text-[#B5A995]">
+                          DEF:
+                        </label>
+                        <input
+                          id="topbar-defense"
+                          type="text"
+                          placeholder="vazio"
+                          maxLength={4}
+                          value={
+                            sorceryConfig.combat.selectedType === 'attack-defense'
+                              ? (sorceryConfig.combat.dual?.defenseValue ?? '')
+                              : ''
+                          }
+                          onChange={(e) => handleTopbarDefenseChange(e.target.value)}
+                          className="w-10 h-7 text-center text-xs font-bold font-mono text-[#E8DECA] bg-[#24221E] border border-[#453B2D] focus:border-[#C5A675] rounded focus:outline-none placeholder:text-[10px] placeholder:text-[#8F8270]"
+                          title="Valor de Defesa (Deixe vazio para usar apenas Ataque individual)"
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
               </>
             )}

@@ -129,10 +129,19 @@ export const CARD_TYPES: CardTypeDefinition[] = [
 
 /**
  * Helper centralizado: indica se o tipo de carta possui atributos de combate (ATK / DEF).
- * 'minion' e 'site' compartilham atributos e controles de combate. 'magic', 'aura' e 'artifact'
- * compartilham a mesma estrutura unificada sem atributos nem botões de combate.
+ * 'minion' e 'site' compartilham atributos e controles de combate (ATK e DEF).
+ * 'avatar' possui exclusivamente o atributo ATK (com novo ícone de espadas cruzadas).
+ * 'magic', 'aura' e 'artifact' não possuem atributos de combate.
  */
 export function hasCombatAttributes(cardType?: CardTypeId | null): boolean {
+  return cardType === 'minion' || cardType === 'site' || cardType === 'avatar';
+}
+
+/**
+ * Indica se o tipo de carta suporta o modo duplo (Ataque + Defesa).
+ * Minion e Site suportam. Avatar possui exclusivamente Ataque.
+ */
+export function canHaveDualCombat(cardType?: CardTypeId | null): boolean {
   return cardType === 'minion' || cardType === 'site';
 }
 

@@ -226,38 +226,40 @@ export const SingleCombatControls: React.FC<SingleCombatControlsProps> = ({
           </div>
 
           {/* Campo para Adicionar Defesa (Alterna automaticamente para Modo Duplo) */}
-          <div className="bg-slate-50 border border-slate-200 p-3 rounded-lg space-y-2">
-            <div className="flex items-center gap-1.5">
-              <Shield className="w-4 h-4 text-sky-600" />
-              <label className="text-xs font-bold text-slate-800">
-                Adicionar Defesa (Ativar Modo ATK/DEF)
-              </label>
+          {onAddDefense && (
+            <div className="bg-slate-50 border border-slate-200 p-3 rounded-lg space-y-2">
+              <div className="flex items-center gap-1.5">
+                <Shield className="w-4 h-4 text-sky-600" />
+                <label className="text-xs font-bold text-slate-800">
+                  Adicionar Defesa (Ativar Modo ATK/DEF)
+                </label>
+              </div>
+              <p className="text-[11px] text-slate-500">
+                Ao preencher um valor de Defesa, a carta alternará automaticamente para o modo duplo (attack_defense.png).
+              </p>
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="text"
+                  placeholder="Ex: 5 ou *"
+                  value={tempDefense}
+                  onChange={(e) => setTempDefense(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleApplyDefense(tempDefense || '5');
+                    }
+                  }}
+                  className="w-24 px-3 py-1.5 border border-slate-300 rounded text-center text-sm font-bold font-mono bg-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleApplyDefense(tempDefense || '5')}
+                  className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded text-xs font-bold transition-colors shadow-2xs"
+                >
+                  Ativar Defesa
+                </button>
+              </div>
             </div>
-            <p className="text-[11px] text-slate-500">
-              Ao preencher um valor de Defesa, a carta alternará automaticamente para o modo duplo (attack_defense.png).
-            </p>
-            <div className="flex items-center gap-2 pt-1">
-              <input
-                type="text"
-                placeholder="Ex: 5 ou *"
-                value={tempDefense}
-                onChange={(e) => setTempDefense(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    handleApplyDefense(tempDefense || '5');
-                  }
-                }}
-                className="w-24 px-3 py-1.5 border border-slate-300 rounded text-center text-sm font-bold font-mono bg-white focus:outline-none focus:ring-2 focus:ring-sky-500"
-              />
-              <button
-                type="button"
-                onClick={() => handleApplyDefense(tempDefense || '5')}
-                className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded text-xs font-bold transition-colors shadow-2xs"
-              >
-                Ativar Defesa
-              </button>
-            </div>
-          </div>
+          )}
 
           {/* Imagem de Fundo (Exibida livremente quando desbloqueado, protegida quando bloqueado) */}
           {isLocked ? (

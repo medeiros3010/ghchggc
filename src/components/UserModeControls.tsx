@@ -134,10 +134,14 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
     (frameConfig?.imageUrl ? findAttributeByFrameUrl(frameConfig.imageUrl, activeCardType)?.id : undefined);
   const allowedThresholdElements = getAllowedThresholdElements(effectiveAttribute, activeCardType);
 
-  // Helpers de Mana
+  // Helpers de Mana / Vida
+  const isAvatar = activeCardType === 'avatar';
+  const currentManaOrVida = isAvatar
+    ? (sorceryConfig.vida?.quantity ?? sorceryConfig.mana.quantity ?? 20)
+    : (sorceryConfig.mana.quantity || 0);
+
   const handleStepMana = (delta: number) => {
-    const current = sorceryConfig.mana.quantity || 0;
-    const next = Math.max(0, Math.min(99, current + delta));
+    const next = Math.max(0, Math.min(999, currentManaOrVida + delta));
     onUpdateSorceryMana({ quantity: next });
   };
 
@@ -203,25 +207,25 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
   };
 
   // Posicionamento livre dos thresholds do Site
-  const siteThresholdX = typeof sorceryConfig.threshold.xPercent === 'number' ? sorceryConfig.threshold.xPercent : 5.5;
-  const siteThresholdY = typeof sorceryConfig.threshold.yPercent === 'number' ? sorceryConfig.threshold.yPercent : 6.8;
-  const siteGapX = typeof sorceryConfig.threshold.gapXPercent === 'number' ? sorceryConfig.threshold.gapXPercent : 1.2;
+  const siteThresholdX = typeof sorceryConfig.threshold.xPercent === 'number' ? sorceryConfig.threshold.xPercent : 82.9;
+  const siteThresholdY = typeof sorceryConfig.threshold.yPercent === 'number' ? sorceryConfig.threshold.yPercent : 84.0;
+  const siteGapX = typeof sorceryConfig.threshold.gapXPercent === 'number' ? sorceryConfig.threshold.gapXPercent : 12.0;
 
   const handleStepSiteThresholdPos = (coord: 'x' | 'y', delta: number) => {
     if (coord === 'x') {
-      const next = Math.max(0, Math.min(95, parseFloat((siteThresholdX + delta).toFixed(1))));
+      const next = Math.max(0, Math.min(98, parseFloat((siteThresholdX + delta).toFixed(1))));
       onUpdateSorceryThreshold({ xPercent: next });
     } else {
-      const next = Math.max(0, Math.min(95, parseFloat((siteThresholdY + delta).toFixed(1))));
+      const next = Math.max(0, Math.min(98, parseFloat((siteThresholdY + delta).toFixed(1))));
       onUpdateSorceryThreshold({ yPercent: next });
     }
   };
 
   const handleResetSiteThresholdPos = () => {
     onUpdateSorceryThreshold({
-      xPercent: 5.5,
-      yPercent: 6.8,
-      gapXPercent: 1.2,
+      xPercent: 82.9,
+      yPercent: 84.0,
+      gapXPercent: 12.0,
     });
   };
 
@@ -978,23 +982,31 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
               <p className="text-[11px] text-[#B5A995] mt-0.5">
                 {activeCardType === 'site'
                   ? 'Configure os Thresholds elementais, seu posicionamento livre e poder de combate.'
+                  : isAvatar
+                  ? 'Configure a Vida e o poder de combate.'
                   : 'Configure os custos de Mana, Thresholds elementais e poder de combate.'}
               </p>
             </div>
 
-            {/* 1. Custo de Mana (Oculto em cartas Site) */}
+            {/* 1. Custo de Mana (Oculto em cartas Site, substituído por Vida no Avatar) */}
             {activeCardType !== 'site' && (
               <div className="bg-[#302D27] p-3.5 rounded-lg border border-[#65543C] space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-6 h-6 rounded-full relative flex items-center justify-center shrink-0">
                       <img
-                        src={sorceryConfig.mana.imageUrl || '/assets/sorcery/mana.png?v=2'}
-                        alt="Mana"
+                        src={
+                          isAvatar
+                            ? (sorceryConfig.vida?.imageUrl || '/assets/sorcery/vida(1).png')
+                            : (sorceryConfig.mana.imageUrl || '/assets/sorcery/mana.png?v=2')
+                        }
+                        alt={isAvatar ? 'Vida' : 'Mana'}
                         className="w-full h-full object-contain"
                       />
                     </div>
-                    <span className="text-xs font-semibold text-[#E8DECA]">Custo de Mana</span>
+                    <span className="text-xs font-semibold text-[#E8DECA]">
+                      {isAvatar ? 'Vida' : 'Custo de Mana'}
+                    </span>
                   </div>
 
                   <div className="flex items-center gap-1">
@@ -1002,16 +1014,27 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
                       type="button"
                       onClick={() => handleStepMana(-1)}
                       className="w-7 h-7 flex items-center justify-center bg-[#24221E] hover:bg-[#34352D] text-[#E8DECA] border border-[#453B2D] rounded text-xs font-bold cursor-pointer transition-colors"
+                      title={isAvatar ? 'Diminuir Vida' : 'Diminuir Mana'}
                     >
                       -
                     </button>
-                    <span className="w-8 text-center text-sm font-bold font-mono text-[#E8DECA]">
-                      {sorceryConfig.mana.quantity || 0}
-                    </span>
+                    <input
+                      type="number"
+                      min="0"
+                      max="999"
+                      value={currentManaOrVida}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        onUpdateSorceryMana({ quantity: isNaN(val) || val < 0 ? 0 : val });
+                      }}
+                      className="w-12 text-center text-sm font-bold font-mono text-[#E8DECA] bg-[#24221E] border border-[#453B2D] rounded py-0.5 focus:border-[#C5A675] outline-none"
+                      title={isAvatar ? 'Valor numérico de Vida' : 'Custo numérico de Mana'}
+                    />
                     <button
                       type="button"
                       onClick={() => handleStepMana(1)}
                       className="w-7 h-7 flex items-center justify-center bg-[#24221E] hover:bg-[#34352D] text-[#E8DECA] border border-[#453B2D] rounded text-xs font-bold cursor-pointer transition-colors"
+                      title={isAvatar ? 'Aumentar Vida' : 'Aumentar Mana'}
                     >
                       +
                     </button>
@@ -1020,7 +1043,8 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
               </div>
             )}
 
-            {/* 2. Threshold Elemental */}
+            {/* 2. Threshold Elemental (Oculto no Avatar) */}
+            {activeCardType !== 'avatar' && (
             <div className="bg-[#302D27] p-3.5 rounded-lg border border-[#65543C] space-y-3">
               <div>
                 <span className="text-xs font-semibold text-[#E8DECA] block">Threshold Elemental</span>
@@ -1340,7 +1364,7 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
                       type="button"
                       onClick={handleResetSiteThresholdPos}
                       className="text-[10px] text-[#B5A995] hover:text-[#E8DECA] flex items-center gap-1 cursor-pointer transition-colors"
-                      title="Restaurar posição padrão (5.5%, 6.8%)"
+                      title="Restaurar posição padrão (82.9%, 84.0%)"
                     >
                       <RotateCcw className="w-3 h-3 text-[#C5A675]" />
                       <span>Padrão</span>
@@ -1368,7 +1392,7 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
                       <input
                         type="range"
                         min="0"
-                        max="90"
+                        max="98"
                         step="0.5"
                         value={siteThresholdX}
                         onChange={(e) => onUpdateSorceryThreshold({ xPercent: parseFloat(e.target.value) })}
@@ -1401,7 +1425,7 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
                       <input
                         type="range"
                         min="0"
-                        max="90"
+                        max="98"
                         step="0.5"
                         value={siteThresholdY}
                         onChange={(e) => onUpdateSorceryThreshold({ yPercent: parseFloat(e.target.value) })}
@@ -1436,6 +1460,7 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
                 </div>
               )}
             </div>
+            )}
 
             {/* 3. Modo de Combate */}
             {activeCardType === 'site' ? (
@@ -1572,6 +1597,58 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
                     )}
                   </div>
                 )}
+              </div>
+            ) : activeCardType === 'avatar' ? (
+              /* Configuração Exclusiva de Combate para Avatar (Somente ATK) */
+              <div className="bg-[#302D27] p-3.5 rounded-lg border border-[#65543C] space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-semibold text-[#E8DECA] block">Ataque do Avatar (ATK)</span>
+                    <span className="text-[10px] text-[#B5A995]">
+                      O Avatar possui exclusivamente o atributo de Ataque
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono text-[#C5A675] border border-[#65543C] px-2 py-0.5 rounded bg-[#24221E]">
+                    ATK Único
+                  </span>
+                </div>
+
+                <div className="pt-1">
+                  {/* Campo de Ataque Único */}
+                  <div className="flex items-center justify-between bg-[#24221E] p-2 rounded border border-[#453B2D]">
+                    <div className="flex items-center gap-1.5">
+                      <Swords className="w-3.5 h-3.5 text-[#C5A675]" />
+                      <span className="text-xs font-medium text-[#E8DECA]">Ataque (ATK):</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleStepCombatValue('attack', -1)}
+                        className="w-6 h-6 flex items-center justify-center bg-[#302D27] hover:bg-[#34352D] text-[#E8DECA] border border-[#453B2D] rounded text-xs cursor-pointer"
+                        title="Diminuir ataque"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="text"
+                        maxLength={4}
+                        value={atkValue}
+                        onChange={(e) => handleCustomCombatValue('attack', e.target.value)}
+                        placeholder="2"
+                        className="w-12 h-6 text-center text-xs font-bold font-mono text-[#E8DECA] bg-[#24221E] border border-[#453B2D] focus:border-[#C5A675] rounded focus:outline-none"
+                        title="Aceita números, * ou X"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleStepCombatValue('attack', 1)}
+                        className="w-6 h-6 flex items-center justify-center bg-[#302D27] hover:bg-[#34352D] text-[#E8DECA] border border-[#453B2D] rounded text-xs cursor-pointer"
+                        title="Aumentar ataque"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
             ) : (
               /* Configuração Original de Combate para Criaturas / Outros Tipos */
