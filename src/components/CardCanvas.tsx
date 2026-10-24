@@ -48,6 +48,7 @@ interface CardCanvasProps {
   onUpdateSymbol?: (id: 'manaSymbol' | 'attackSymbol', updates: Partial<CustomSymbolConfig>) => void;
   onUploadImage: (file: File) => void;
   onUploadCardFrame?: (file: File) => void;
+  onUpdateArtConfig?: (updates: Partial<CardArtConfig>) => void;
   showGuides: boolean;
   isEditMode: boolean; // true = modo edição com caixas demarcadas e handles, false = preview limpo
   zoom: number; // 0.8 a 1.5
@@ -81,17 +82,20 @@ export const CardCanvas: React.FC<CardCanvasProps> = ({
   onUpdateTextBox,
   onUpdateSymbol,
   onUploadImage,
+  onUploadCardFrame,
+  onUpdateArtConfig,
   showGuides,
   isEditMode,
   zoom,
 }) => {
   const cardRef = useRef<HTMLDivElement>(null);
+  const artContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [editingBoxId, setEditingBoxId] = useState<string | null>(null);
 
   // Estados para arrasto (drag & drop) e redimensionamento unificado
   const [dragState, setDragState] = useState<{
-    targetKind: 'box' | 'symbol' | 'combat' | 'threshold';
+    targetKind: 'box' | 'symbol' | 'combat' | 'threshold' | 'art';
     targetId: string;
     type: 'move' | 'resize';
     startX: number;
@@ -102,6 +106,26 @@ export const CardCanvas: React.FC<CardCanvasProps> = ({
     initialHeightPercent: number;
     keepAspectRatio?: boolean;
   } | null>(null);
+
+  // Iniciar arraste de posicionamento da ilustração da carta (Sorcerer's Spellbook style)
+  const handleStartMoveArt = (e: React.PointerEvent) => {
+    if (e.button !== 0 || !artConfig.imageUrl || !onUpdateArtConfig) return;
+    e.stopPropagation();
+    onSelectBox(null);
+    onSelectSymbol?.(null);
+
+    setDragState({
+      targetKind: 'art',
+      targetId: 'card-art',
+      type: 'move',
+      startX: e.clientX,
+      startY: e.clientY,
+      initialXPercent: artConfig.offsetXPercent || 0,
+      initialYPercent: artConfig.offsetYPercent || 0,
+      initialWidthPercent: 0,
+      initialHeightPercent: 0,
+    });
+  };
 
   // Iniciar arraste de posição dos thresholds do Site (100% livre)
   const handleStartMoveSiteThreshold = (

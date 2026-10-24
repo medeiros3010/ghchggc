@@ -151,6 +151,9 @@ export const DEFAULT_CARD_ART: CardArtConfig = {
   frameTopPercent: 13,
   frameHeightPercent: 41,
   frameMarginPercent: 6,
+  scale: 1,
+  offsetXPercent: 0,
+  offsetYPercent: 0,
 };
 
 export const DEFAULT_AVATAR_FRAME_URL = '/assets/frames/Avatar.png';

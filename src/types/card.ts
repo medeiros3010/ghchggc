@@ -260,6 +260,10 @@ export interface CardArtConfig {
   frameTopPercent: number; // se modo framed: início do frame
   frameHeightPercent: number; // altura do frame de arte
   frameMarginPercent: number; // margem lateral do frame
+  // Posicionamento livre e enquadramento da ilustração (estilo Sorcerer's Spellbook)
+  scale?: number; // Zoom/Escala da ilustração (0.2 a 4.0, padrão 1.0)
+  offsetXPercent?: number; // Deslocamento horizontal (-100% a +100%, padrão 0)
+  offsetYPercent?: number; // Deslocamento vertical (-100% a +100%, padrão 0)
 }
 
 /**

@@ -90,9 +90,13 @@ export async function exportCardToPng(
       ctx.save();
       ctx.globalAlpha = artConfig.opacity;
 
+      const artScale = artConfig.scale ?? 1.0;
+      const artOffsetX = artConfig.offsetXPercent ?? 0;
+      const artOffsetY = artConfig.offsetYPercent ?? 0;
+
       if (artConfig.mode === 'full-bleed') {
         // Modo Sangria Total / Full Bleed
-        drawCoverImage(ctx, img, 0, 0, targetWidth, targetHeight, artConfig.fit);
+        drawCoverImage(ctx, img, 0, 0, targetWidth, targetHeight, artConfig.fit, artScale, artOffsetX, artOffsetY);
       } else {
         // Modo Moldura Designada de Arte
         const frameX = (artConfig.frameMarginPercent / 100) * targetWidth;
@@ -104,7 +108,7 @@ export async function exportCardToPng(
         ctx.beginPath();
         ctx.rect(frameX, frameY, frameW, frameH);
         ctx.clip();
-        drawCoverImage(ctx, img, frameX, frameY, frameW, frameH, artConfig.fit);
+        drawCoverImage(ctx, img, frameX, frameY, frameW, frameH, artConfig.fit, artScale, artOffsetX, artOffsetY);
         ctx.restore();
 
         // Moldura wireframe ao redor da arte
@@ -566,13 +570,19 @@ export async function exportCardToPng(
 
         ctx.save();
 
-        // Medição dos segmentos com precisão
+        // Medição dos segmentos com precisão (considerando símbolos inline)
         ctx.font = titleFontSpec;
         if ('letterSpacing' in ctx) {
           const ls = (titleBox.letterSpacingPx || 0) * scale;
           (ctx as unknown as { letterSpacing: string }).letterSpacing = `${ls}px`;
         }
-        const titleWidth = hasTitle ? ctx.measureText(rawTitle).width : 0;
+        const titleChunks = parseTextWithSymbols(rawTitle);
+        let measuredTitleWidth = 0;
+        if (hasTitle) {
+          for (const c of titleChunks) {
+            measuredTitleWidth += measureChunkWidth(ctx, c, computedTitleFontSize);
+          }
+        }
 
         ctx.font = typeFontSpec;
         if ('letterSpacing' in ctx) {
@@ -584,9 +594,15 @@ export async function exportCardToPng(
           const ls = (typeBox?.letterSpacingPx || 0) * scale;
           (ctx as unknown as { letterSpacing: string }).letterSpacing = `${ls}px`;
         }
-        const typeWidth = hasType ? ctx.measureText(rawType).width : 0;
+        const typeChunks = parseTextWithSymbols(rawType);
+        let measuredTypeWidth = 0;
+        if (hasType) {
+          for (const c of typeChunks) {
+            measuredTypeWidth += measureChunkWidth(ctx, c, computedTypeFontSize);
+          }
+        }
 
-        const totalWidth = titleWidth + sepWidth + typeWidth;
+        const totalWidth = measuredTitleWidth + sepWidth + measuredTypeWidth;
 
         // Alinhamento horizontal da linha única composta
         const alignment = titleBox.textAlign || 'center';
@@ -597,7 +613,7 @@ export async function exportCardToPng(
           lineX = x + w - padX - totalWidth;
         }
 
-        // Alinhamento vertical e cálculo da linha de base tipográfica contínua
+        // Alinhamento vertical e cálculo da linha de base tipográfica contínua fiel ao CSS inline
         const effectiveLineHeight = titleBox.lineHeight !== undefined ? titleBox.lineHeight : 1.25;
         const halfLeading = ((effectiveLineHeight - 1) * computedTitleFontSize) / 2;
         const topY = y + padY + halfLeading;
@@ -615,23 +631,18 @@ export async function exportCardToPng(
 
         let curX = lineX;
 
-        // 1. Renderiza o Nome da Carta
+        // 1. Renderiza o Nome da Carta (ancorado rigorosamente na baseline)
         if (hasTitle) {
           ctx.font = titleFontSpec;
           if ('letterSpacing' in ctx) {
             const ls = (titleBox.letterSpacingPx || 0) * scale;
             (ctx as unknown as { letterSpacing: string }).letterSpacing = `${ls}px`;
           }
-          const titleChunks = parseTextWithSymbols(rawTitle);
-          let computedW = 0;
-          for (const c of titleChunks) {
-            computedW += measureChunkWidth(ctx, c, computedTitleFontSize);
-          }
           drawLineWithSymbols(
             ctx,
             titleChunks,
             curX,
-            topY,
+            baselineY,
             computedTitleFontSize,
             computedTitleFontSize,
             {
@@ -641,10 +652,10 @@ export async function exportCardToPng(
             },
             symbolImages
           );
-          curX += computedW;
+          curX += measuredTitleWidth;
         }
 
-        // 2. Renderiza o Separador Automático " - "
+        // 2. Renderiza o Separador Automático " - " (mesma baseline comum do CSS)
         if (hasSeparator) {
           ctx.font = typeFontSpec;
           if ('letterSpacing' in ctx) {
@@ -664,19 +675,18 @@ export async function exportCardToPng(
           curX += sepWidth;
         }
 
-        // 3. Renderiza o Tipo e Subtipo
+        // 3. Renderiza o Tipo e Subtipo (mesma baseline comum do CSS)
         if (hasType) {
           ctx.font = typeFontSpec;
           if ('letterSpacing' in ctx) {
             const ls = (typeBox?.letterSpacingPx || 0) * scale;
             (ctx as unknown as { letterSpacing: string }).letterSpacing = `${ls}px`;
           }
-          const typeChunks = parseTextWithSymbols(rawType);
           drawLineWithSymbols(
             ctx,
             typeChunks,
             curX,
-            topY + (computedTitleFontSize - computedTypeFontSize) / 2,
+            baselineY,
             computedTypeFontSize,
             computedTypeFontSize,
             {
@@ -775,17 +785,21 @@ export async function exportCardToPng(
         lineHeightPx,
         paragraphSpacingPx,
         box.textAlign,
-        box.paragraphAlignments,
+        cardType === 'site' ? undefined : box.paragraphAlignments,
         {
           enabled: hasStroke,
           color: strokeColor,
           width: strokeWidth,
         },
         computedFontSize,
-        symbolImages
+        symbolImages,
+        cardType === 'site'
       );
     } else {
-      const singleAlign = (box.paragraphAlignments && box.paragraphAlignments[0]) || box.textAlign || 'left';
+      const singleAlign =
+        cardType === 'site'
+          ? (box.textAlign || 'left')
+          : ((box.paragraphAlignments && box.paragraphAlignments[0]) || box.textAlign || 'left');
       const chunks = parseTextWithSymbols(box.content);
       let totalW = 0;
       for (const c of chunks) {
@@ -860,39 +874,54 @@ function drawCoverImage(
   y: number,
   w: number,
   h: number,
-  fit: 'cover' | 'contain' | 'fill'
+  fit: 'cover' | 'contain' | 'fill',
+  scale: number = 1.0,
+  offsetXPercent: number = 0,
+  offsetYPercent: number = 0
 ) {
+  const safeScale = scale > 0 ? scale : 1.0;
   if (fit === 'fill') {
-    ctx.drawImage(img, x, y, w, h);
+    const dw = w * safeScale;
+    const dh = h * safeScale;
+    const centerX = x + w / 2 + (offsetXPercent / 100) * w;
+    const centerY = y + h / 2 + (offsetYPercent / 100) * h;
+    const dx = centerX - dw / 2;
+    const dy = centerY - dh / 2;
+    ctx.drawImage(img, dx, dy, dw, dh);
     return;
   }
 
   const imgRatio = img.width / img.height;
   const targetRatio = w / h;
 
-  let dw = w;
-  let dh = h;
-  let dx = x;
-  let dy = y;
+  let baseDw = w;
+  let baseDh = h;
 
   if (fit === 'cover') {
     if (imgRatio > targetRatio) {
-      dw = h * imgRatio;
-      dx = x - (dw - w) / 2;
+      baseDw = h * imgRatio;
+      baseDh = h;
     } else {
-      dh = w / imgRatio;
-      dy = y - (dh - h) / 2;
+      baseDw = w;
+      baseDh = w / imgRatio;
     }
   } else {
     // contain
     if (imgRatio > targetRatio) {
-      dh = w / imgRatio;
-      dy = y + (h - dh) / 2;
+      baseDw = w;
+      baseDh = w / imgRatio;
     } else {
-      dw = h * imgRatio;
-      dx = x + (w - dw) / 2;
+      baseDw = h * imgRatio;
+      baseDh = h;
     }
   }
+
+  const dw = baseDw * safeScale;
+  const dh = baseDh * safeScale;
+  const centerX = x + w / 2 + (offsetXPercent / 100) * w;
+  const centerY = y + h / 2 + (offsetYPercent / 100) * h;
+  const dx = centerX - dw / 2;
+  const dy = centerY - dh / 2;
 
   ctx.drawImage(img, dx, dy, dw, dh);
 }
@@ -953,7 +982,10 @@ function drawLineWithSymbols(
   let curX = startX;
   const iconSize = fontSize * 1.05;
   const marginX = fontSize * 0.12;
-  const iconY = y + (fontSize - iconSize) / 2 + fontSize * 0.05;
+  const isAlphabetic = ctx.textBaseline === 'alphabetic';
+  const iconY = isAlphabetic
+    ? y - fontSize * 0.78 + (fontSize - iconSize) / 2
+    : y + (fontSize - iconSize) / 2 + fontSize * 0.05;
 
   for (const chunk of chunks) {
     if (chunk.type === 'symbol') {
@@ -1002,10 +1034,12 @@ function wrapTextAdvanced(
     width: number;
   },
   fontSize: number = 14,
-  symbolImages?: Record<string, HTMLImageElement>
+  symbolImages?: Record<string, HTMLImageElement>,
+  isSite: boolean = false
 ) {
   const paragraphs = text.split(/\r?\n/);
-  let currentY = boxY + padY;
+  const halfLeading = isSite ? Math.max(0, (lineHeight - fontSize) / 2) : 0;
+  let currentY = boxY + padY + halfLeading;
   const maxWidth = Math.max(10, boxW - padX * 2);
   const maxHeight = Math.max(10, boxH - padY * 2);
 
