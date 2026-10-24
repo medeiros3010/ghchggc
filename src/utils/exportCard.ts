@@ -22,6 +22,7 @@ import {
   getAllowedThresholdElements,
   findAttributeByFrameUrl,
 } from '../types/cardAttribute';
+import { parseTextWithSymbols, ParsedTextChunk, THRESHOLD_IMAGE_MAP } from './textSymbols';
 
 /**
  * Utilitário para renderizar e exportar a carta em formato PNG de alta resolução
@@ -40,6 +41,18 @@ export async function exportCardToPng(
 ): Promise<void> {
   // Aguarda o carregamento e rasterização completa de todas as fontes antes de renderizar
   await ensureAllFontsLoaded();
+
+  // Pré-carrega ícones de símbolos de Threshold para renderização inline em texto
+  const symbolImages: Record<string, HTMLImageElement> = {};
+  await Promise.all(
+    Object.entries(THRESHOLD_IMAGE_MAP).map(async ([key, url]) => {
+      try {
+        symbolImages[key] = await loadImage(url);
+      } catch (err) {
+        console.warn(`Erro ao carregar imagem de símbolo ${url}:`, err);
+      }
+    })
+  );
 
   // Resolução de exportação de alta fidelidade (~308 DPI):
   // Proporção física oficial de Sorcery:
@@ -609,18 +622,26 @@ export async function exportCardToPng(
             const ls = (titleBox.letterSpacingPx || 0) * scale;
             (ctx as unknown as { letterSpacing: string }).letterSpacing = `${ls}px`;
           }
-          if (hasTitleStroke && titleStrokeWidth > 0) {
-            ctx.save();
-            ctx.strokeStyle = titleStrokeColor;
-            ctx.lineWidth = titleStrokeWidth * 2;
-            ctx.lineJoin = 'round';
-            ctx.miterLimit = 2;
-            ctx.strokeText(rawTitle, curX, baselineY);
-            ctx.restore();
+          const titleChunks = parseTextWithSymbols(rawTitle);
+          let computedW = 0;
+          for (const c of titleChunks) {
+            computedW += measureChunkWidth(ctx, c, computedTitleFontSize);
           }
-          ctx.fillStyle = titleColor;
-          ctx.fillText(rawTitle, curX, baselineY);
-          curX += titleWidth;
+          drawLineWithSymbols(
+            ctx,
+            titleChunks,
+            curX,
+            topY,
+            computedTitleFontSize,
+            computedTitleFontSize,
+            {
+              enabled: hasTitleStroke,
+              color: titleStrokeColor,
+              width: titleStrokeWidth,
+            },
+            symbolImages
+          );
+          curX += computedW;
         }
 
         // 2. Renderiza o Separador Automático " - "
@@ -650,17 +671,21 @@ export async function exportCardToPng(
             const ls = (typeBox?.letterSpacingPx || 0) * scale;
             (ctx as unknown as { letterSpacing: string }).letterSpacing = `${ls}px`;
           }
-          if (hasTypeStroke && typeStrokeWidth > 0) {
-            ctx.save();
-            ctx.strokeStyle = typeStrokeColor;
-            ctx.lineWidth = typeStrokeWidth * 2;
-            ctx.lineJoin = 'round';
-            ctx.miterLimit = 2;
-            ctx.strokeText(rawType, curX, baselineY);
-            ctx.restore();
-          }
-          ctx.fillStyle = typeColor;
-          ctx.fillText(rawType, curX, baselineY);
+          const typeChunks = parseTextWithSymbols(rawType);
+          drawLineWithSymbols(
+            ctx,
+            typeChunks,
+            curX,
+            topY + (computedTitleFontSize - computedTypeFontSize) / 2,
+            computedTypeFontSize,
+            computedTypeFontSize,
+            {
+              enabled: hasTypeStroke,
+              color: typeStrokeColor,
+              width: typeStrokeWidth,
+            },
+            symbolImages
+          );
         }
 
         // Reset de espaçamento
@@ -755,34 +780,45 @@ export async function exportCardToPng(
           enabled: hasStroke,
           color: strokeColor,
           width: strokeWidth,
-        }
+        },
+        computedFontSize,
+        symbolImages
       );
     } else {
       const singleAlign = (box.paragraphAlignments && box.paragraphAlignments[0]) || box.textAlign || 'left';
+      const chunks = parseTextWithSymbols(box.content);
+      let totalW = 0;
+      for (const c of chunks) {
+        totalW += measureChunkWidth(ctx, c, computedFontSize);
+      }
+
       let textX = x + padX;
       if (singleAlign === 'center') {
-        ctx.textAlign = 'center';
-        textX = x + w / 2;
+        textX = (x + w / 2) - totalW / 2;
       } else if (singleAlign === 'right') {
-        ctx.textAlign = 'right';
-        textX = x + w - padX;
+        textX = (x + w - padX) - totalW;
       } else {
-        ctx.textAlign = 'left';
+        textX = x + padX;
       }
 
       // Alinhamento vertical fiel ao CSS do editor: top + padY + compensação de entrelinha proporcional
       const halfLeading = ((effectiveLineHeight - 1) * computedFontSize) / 2;
       const textY = y + padY + halfLeading;
-      if (hasStroke && strokeWidth > 0) {
-        ctx.save();
-        ctx.strokeStyle = strokeColor;
-        ctx.lineWidth = strokeWidth * 2;
-        ctx.lineJoin = 'round';
-        ctx.miterLimit = 2;
-        ctx.strokeText(box.content, textX, textY);
-        ctx.restore();
-      }
-      ctx.fillText(box.content, textX, textY);
+
+      drawLineWithSymbols(
+        ctx,
+        chunks,
+        textX,
+        textY,
+        computedFontSize,
+        lineHeightPx,
+        {
+          enabled: hasStroke,
+          color: strokeColor,
+          width: strokeWidth,
+        },
+        symbolImages
+      );
     }
 
     // Reset de espaçamentos para evitar vazamentos em outros elementos
@@ -885,6 +921,68 @@ function roundRect(
  * entrelinha customizada (line-height), espaçamento entre parágrafos
  * e alinhamento individual por parágrafo / linha.
  */
+/**
+ * Mede a largura de um pedaço de texto ou símbolo para layout no canvas
+ */
+function measureChunkWidth(
+  ctx: CanvasRenderingContext2D,
+  chunk: ParsedTextChunk,
+  fontSize: number
+): number {
+  if (chunk.type === 'symbol') {
+    const iconSize = fontSize * 1.05;
+    const margin = fontSize * 0.12;
+    return iconSize + margin * 2;
+  }
+  return ctx.measureText(chunk.text).width;
+}
+
+/**
+ * Desenha uma linha de texto com símbolos de Threshold inline e contorno opcional
+ */
+function drawLineWithSymbols(
+  ctx: CanvasRenderingContext2D,
+  chunks: ParsedTextChunk[],
+  startX: number,
+  y: number,
+  fontSize: number,
+  lineHeight: number,
+  strokeOptions?: { enabled: boolean; color: string; width: number },
+  symbolImages?: Record<string, HTMLImageElement>
+) {
+  let curX = startX;
+  const iconSize = fontSize * 1.05;
+  const marginX = fontSize * 0.12;
+  const iconY = y + (fontSize - iconSize) / 2 + fontSize * 0.05;
+
+  for (const chunk of chunks) {
+    if (chunk.type === 'symbol') {
+      const img = symbolImages?.[chunk.element];
+      if (img) {
+        ctx.drawImage(img, curX + marginX, iconY, iconSize, iconSize);
+      }
+      curX += iconSize + marginX * 2;
+    } else {
+      if (strokeOptions?.enabled && strokeOptions.width > 0) {
+        ctx.save();
+        ctx.strokeStyle = strokeOptions.color;
+        ctx.lineWidth = strokeOptions.width * 2;
+        ctx.lineJoin = 'round';
+        ctx.miterLimit = 2;
+        ctx.strokeText(chunk.text, curX, y);
+        ctx.restore();
+      }
+      ctx.fillText(chunk.text, curX, y);
+      curX += ctx.measureText(chunk.text).width;
+    }
+  }
+}
+
+/**
+ * Renderizador avançado de texto com quebra por parágrafos manuais (\n),
+ * entrelinha customizada (line-height), espaçamento entre parágrafos,
+ * alinhamento individual por parágrafo / linha e suporte a símbolos de Threshold.
+ */
 function wrapTextAdvanced(
   ctx: CanvasRenderingContext2D,
   text: string,
@@ -902,41 +1000,18 @@ function wrapTextAdvanced(
     enabled: boolean;
     color: string;
     width: number;
-  }
+  },
+  fontSize: number = 14,
+  symbolImages?: Record<string, HTMLImageElement>
 ) {
   const paragraphs = text.split(/\r?\n/);
   let currentY = boxY + padY;
   const maxWidth = Math.max(10, boxW - padX * 2);
   const maxHeight = Math.max(10, boxH - padY * 2);
 
-  const renderLine = (str: string, lx: number, ly: number) => {
-    if (strokeOptions?.enabled && strokeOptions.width > 0) {
-      ctx.save();
-      ctx.strokeStyle = strokeOptions.color;
-      ctx.lineWidth = strokeOptions.width * 2;
-      ctx.lineJoin = 'round';
-      ctx.miterLimit = 2;
-      ctx.strokeText(str, lx, ly);
-      ctx.restore();
-    }
-    ctx.fillText(str, lx, ly);
-  };
-
   for (let p = 0; p < paragraphs.length; p++) {
     const paragraph = paragraphs[p];
     const pAlign = (paragraphAlignments && paragraphAlignments[p]) || defaultAlign || 'left';
-
-    let lineX = boxX + padX;
-    if (pAlign === 'center') {
-      ctx.textAlign = 'center';
-      lineX = boxX + boxW / 2;
-    } else if (pAlign === 'right') {
-      ctx.textAlign = 'right';
-      lineX = boxX + boxW - padX;
-    } else {
-      ctx.textAlign = 'left';
-      lineX = boxX + padX;
-    }
 
     // Parágrafo vazio (linha em branco intencional)
     if (!paragraph.trim()) {
@@ -945,34 +1020,68 @@ function wrapTextAdvanced(
       continue;
     }
 
-    const words = paragraph.split(' ');
-    let line = '';
+    const rawWords = paragraph.split(' ');
+    let currentLineChunks: ParsedTextChunk[] = [];
+    let currentLineWidth = 0;
+    const spaceWidth = ctx.measureText(' ').width;
 
-    for (let n = 0; n < words.length; n++) {
-      const testLine = line ? `${line} ${words[n]}` : words[n];
-      const metrics = ctx.measureText(testLine);
-      const testWidth = metrics.width;
+    const flushLine = () => {
+      if (currentLineChunks.length === 0) return;
+      let startX = boxX + padX;
+      if (pAlign === 'center') {
+        startX = boxX + padX + (maxWidth - currentLineWidth) / 2;
+      } else if (pAlign === 'right') {
+        startX = boxX + padX + (maxWidth - currentLineWidth);
+      }
+      drawLineWithSymbols(
+        ctx,
+        currentLineChunks,
+        startX,
+        currentY,
+        fontSize,
+        lineHeight,
+        strokeOptions,
+        symbolImages
+      );
+      currentY += lineHeight;
+      currentLineChunks = [];
+      currentLineWidth = 0;
+    };
 
-      if (testWidth > maxWidth && line) {
+    for (let n = 0; n < rawWords.length; n++) {
+      const rawWord = rawWords[n];
+      const wordChunks = parseTextWithSymbols(rawWord);
+      let wordWidth = 0;
+      for (const c of wordChunks) {
+        wordWidth += measureChunkWidth(ctx, c, fontSize);
+      }
+
+      const neededWidth = currentLineChunks.length > 0 ? spaceWidth + wordWidth : wordWidth;
+
+      if (currentLineWidth + neededWidth > maxWidth && currentLineChunks.length > 0) {
         if (currentY + lineHeight > boxY + padY + maxHeight) {
-          renderLine(line.trim() + '...', lineX, currentY);
+          flushLine();
           return;
         }
-        renderLine(line, lineX, currentY);
-        line = words[n];
-        currentY += lineHeight;
+        flushLine();
+        currentLineChunks = [...wordChunks];
+        currentLineWidth = wordWidth;
       } else {
-        line = testLine;
+        if (currentLineChunks.length > 0) {
+          currentLineChunks.push({ type: 'text', text: ' ' });
+          currentLineWidth += spaceWidth;
+        }
+        currentLineChunks.push(...wordChunks);
+        currentLineWidth += wordWidth;
       }
     }
 
-    if (line) {
+    if (currentLineChunks.length > 0) {
       if (currentY + lineHeight > boxY + padY + maxHeight) {
-        renderLine(line.trim() + '...', lineX, currentY);
+        flushLine();
         return;
       }
-      renderLine(line, lineX, currentY);
-      currentY += lineHeight;
+      flushLine();
     }
 
     // Adiciona espaçamento entre parágrafos (apenas se não for o último parágrafo)

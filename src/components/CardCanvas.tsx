@@ -24,6 +24,7 @@ import { calculateAutoFitFontSize } from '../utils/textFit';
 import { hasCombatAttributes, CardTypeId } from '../types/cardType';
 import { CardAttributeId, getAllowedThresholdElements, findAttributeByFrameUrl } from '../types/cardAttribute';
 import { SiteCompositeTitle } from './site/SiteCompositeTitle';
+import { renderFormattedTextWithSymbols } from '../utils/textSymbols';
 
 interface CardCanvasProps {
   cardType?: import('../types/cardType').CardTypeId | null;
@@ -1245,7 +1246,7 @@ export const CardCanvas: React.FC<CardCanvasProps> = ({
                               ...textStrokeStyle,
                             }}
                           >
-                            {para || '\u00A0'}
+                            {para ? renderFormattedTextWithSymbols(para, `para-${box.id}-${idx}`) : '\u00A0'}
                           </p>
                         );
                       })}
@@ -1284,7 +1285,7 @@ export const CardCanvas: React.FC<CardCanvasProps> = ({
                         ...textStrokeStyle,
                       }}
                     >
-                      {box.content || '\u00A0'}
+                      {box.content ? renderFormattedTextWithSymbols(box.content, `box-${box.id}`) : '\u00A0'}
                     </div>
                   )
                 )}

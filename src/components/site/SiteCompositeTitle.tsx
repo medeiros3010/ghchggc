@@ -3,6 +3,7 @@ import { TextBoxConfig } from '../../types/card';
 import { getFontCssProperties } from '../../utils/fontHelper';
 import { calculateAutoFitFontSize } from '../../utils/textFit';
 import { Move } from 'lucide-react';
+import { renderFormattedTextWithSymbols } from '../../utils/textSymbols';
 
 interface SiteCompositeTitleProps {
   titleBox: TextBoxConfig;
@@ -155,7 +156,7 @@ export const SiteCompositeTitle: React.FC<SiteCompositeTitleProps> = ({
               ...titleStrokeStyle,
             }}
           >
-            {rawTitle}
+            {renderFormattedTextWithSymbols(rawTitle, 'site-title')}
           </span>
         )}
 
@@ -191,7 +192,7 @@ export const SiteCompositeTitle: React.FC<SiteCompositeTitleProps> = ({
               ...typeStrokeStyle,
             }}
           >
-            {rawType}
+            {renderFormattedTextWithSymbols(rawType, 'site-type')}
           </span>
         )}
 

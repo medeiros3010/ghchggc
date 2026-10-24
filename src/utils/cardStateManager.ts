@@ -214,12 +214,12 @@ export function getDefaultCardTypeState(cardType: CardTypeId): CardTypeState {
   };
 
   const symbolsConfig: CardSymbolsConfig = JSON.parse(JSON.stringify(DEFAULT_CARD_SYMBOLS));
-  let textBoxes: TextBoxConfig[] = getDefaultTextBoxesForType(cardType);
+  let textBoxes: TextBoxConfig[] = getDefaultTextBoxesForType(cardType).map((b) => ({ ...b, content: '' }));
   let sorceryConfig: SorceryIndicatorsConfig = getDefaultSorceryConfigForType(cardType);
 
   if (cardType === 'site') {
     const siteOfficial = getSiteOfficialDefaultLayout();
-    textBoxes = applySiteOfficialLayoutToTextBoxes(textBoxes, siteOfficial, true);
+    textBoxes = applySiteOfficialLayoutToTextBoxes(textBoxes, siteOfficial, false);
     sorceryConfig = applySiteOfficialLayoutToSorcery(sorceryConfig, siteOfficial, true);
   }
 
@@ -297,7 +297,9 @@ export function getStoredCardTypeState(cardType: CardTypeId): CardTypeState {
                 box.role === 'type' ||
                 box.id === 'box-title' ||
                 box.id === 'box-type';
-              let updatedBox = box;
+              // Preserva integralmente todas as posições, dimensões, fontes, contornos e estilos visuais,
+              // mas inicializa o conteúdo textual completamente vazio para criação de nova carta
+              let updatedBox: TextBoxConfig = { ...box, content: '' };
               if (isTitleOrType && (box.fontFamily === 'morpheus' || box.fontFamily === 'palatino-italic' || !box.fontFamily)) {
                 updatedBox = { ...updatedBox, fontFamily: 'fantaisie-artistique' };
               }
@@ -306,7 +308,7 @@ export function getStoredCardTypeState(cardType: CardTypeId): CardTypeState {
               }
               return updatedBox;
             })
-          : defaultState.textBoxes,
+          : defaultState.textBoxes.map((b) => ({ ...b, content: '' })),
         sorceryConfig: (() => {
           const cfg = parsed.sorceryConfig || defaultState.sorceryConfig;
           const defaultThreshold = defaultState.sorceryConfig?.threshold;
@@ -591,7 +593,6 @@ export function createNewCardState(
 
   // 3. Limpa conteúdo das caixas de texto preservando todas as posições, dimensões, fontes e espaçamentos
   let cleanTextBoxes: TextBoxConfig[] = base.textBoxes.map((box) => {
-    const defaultBox = defaultBase.textBoxes.find((b) => b.id === box.id || b.role === box.role);
     const isTitleOrType =
       box.role === 'title' ||
       box.role === 'type' ||
@@ -599,7 +600,7 @@ export function createNewCardState(
       box.id === 'box-type';
     return {
       ...box,
-      content: defaultBox ? defaultBox.content : '',
+      content: '', // Sempre completamente vazio para novas cartas
       fontFamily: isTitleOrType && (box.fontFamily === 'morpheus' || box.fontFamily === 'palatino-italic' || !box.fontFamily)
         ? 'fantaisie-artistique'
         : box.fontFamily,

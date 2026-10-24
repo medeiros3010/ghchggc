@@ -868,7 +868,7 @@ export default function App() {
     const newBox: TextBoxConfig = {
       id: newId,
       name: `Nova Caixa ${textBoxes.length + 1}`,
-      content: 'Novo Texto',
+      content: '',
       xPercent: 10,
       yPercent: 30,
       widthPercent: 80,
@@ -957,7 +957,7 @@ export default function App() {
           {
             id: 'box-title-min',
             name: 'Título Principal',
-            content: 'Nome do Card',
+            content: '',
             xPercent: 10,
             yPercent: 8,
             widthPercent: 80,
@@ -983,7 +983,7 @@ export default function App() {
           {
             id: 'box-desc-min',
             name: 'Descrição Central',
-            content: 'Espaço para efeito principal e texto explicativo da carta.',
+            content: '',
             xPercent: 10,
             yPercent: 65,
             widthPercent: 80,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   CardArtConfig,
   CardDimensionsConfig,
@@ -8,6 +8,7 @@ import {
   CustomSymbolConfig,
   FontFamilyType,
   TextBoxConfig,
+  isRulesTextBox,
 } from '../types/card';
 import { CardLayoutPreset, PresetApplyMode } from '../types/preset';
 import {
@@ -80,6 +81,8 @@ import {
   Minimize2,
 } from 'lucide-react';
 import { calculateAutoFitFontSize } from '../utils/textFit';
+import { TextSymbolsMenu } from './TextSymbolsMenu';
+import { insertSymbolIntoInputElement } from '../utils/textSymbols';
 
 interface SidebarControlsProps {
   cardType?: import('../types/cardType').CardTypeId | null;
@@ -167,6 +170,7 @@ export const SidebarControls: React.FC<SidebarControlsProps> = ({
   const [sorcerySubTab, setSorcerySubTab] = useState<'values' | 'position' | 'typography' | 'order'>('values');
   const [singleSubTab, setSingleSubTab] = useState<'dados' | 'posicao' | 'ataque' | 'tipografia'>('dados');
   const [dualSubTab, setDualSubTab] = useState<'dados' | 'posicao' | 'ataque' | 'defesa'>('dados');
+  const boxContentInputRef = useRef<HTMLInputElement | HTMLTextAreaElement | null>(null);
 
   const hasCombat = hasCombatAttributes(cardType);
 
@@ -564,11 +568,28 @@ export const SidebarControls: React.FC<SidebarControlsProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                      Conteúdo do Texto
-                    </label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-[11px] font-semibold text-slate-700">
+                        Conteúdo do Texto
+                      </label>
+                      {isRulesTextBox(selectedBox) && (
+                        <TextSymbolsMenu
+                          onInsertSymbol={(code) => {
+                            insertSymbolIntoInputElement(
+                              boxContentInputRef.current,
+                              code,
+                              selectedBox.content,
+                              (val) => onUpdateTextBox(selectedBox.id, { content: val })
+                            );
+                          }}
+                          size="xs"
+                          buttonLabel="Símbolos"
+                        />
+                      )}
+                    </div>
                     {selectedBox.isMultiline ? (
                       <textarea
+                        ref={boxContentInputRef as any}
                         value={selectedBox.content}
                         onChange={(e) =>
                           onUpdateTextBox(selectedBox.id, { content: e.target.value })
@@ -578,6 +599,7 @@ export const SidebarControls: React.FC<SidebarControlsProps> = ({
                       />
                     ) : (
                       <input
+                        ref={boxContentInputRef as any}
                         type="text"
                         value={selectedBox.content}
                         onChange={(e) =>

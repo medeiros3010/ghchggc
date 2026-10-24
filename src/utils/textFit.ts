@@ -1,5 +1,6 @@
 import { TextBoxConfig } from '../types/card';
 import { getFontCssProperties } from './fontHelper';
+import { measureStringWithSymbols } from './textSymbols';
 
 export interface TextFitResult {
   effectiveFontSizePx: number;
@@ -71,7 +72,7 @@ export function checkTextFits(
 
   // Linha Única
   if (!box.isMultiline) {
-    const width = ctx.measureText(content).width;
+    const width = measureStringWithSymbols(ctx, content, fontSize);
     const height = lineHeightPx;
     return width <= maxAllowedW && height <= maxAllowedH;
   }
@@ -95,18 +96,18 @@ export function checkTextFits(
     for (let w = 0; w < words.length; w++) {
       const word = words[w];
       const testLine = currentLine ? `${currentLine} ${word}` : word;
-      const metrics = ctx.measureText(testLine);
+      const testWidth = measureStringWithSymbols(ctx, testLine, fontSize);
 
-      if (metrics.width > maxAllowedW && currentLine) {
+      if (testWidth > maxAllowedW && currentLine) {
         // A palavra quebra para a linha seguinte
         // Verifica se a palavra sozinha excede a largura total da caixa
-        if (ctx.measureText(word).width > maxAllowedW) {
+        if (measureStringWithSymbols(ctx, word, fontSize) > maxAllowedW) {
           return false;
         }
         totalH += lineHeightPx;
         if (totalH > maxAllowedH) return false;
         currentLine = word;
-      } else if (metrics.width > maxAllowedW && !currentLine) {
+      } else if (testWidth > maxAllowedW && !currentLine) {
         // Uma palavra isolada é mais larga do que a largura permitida
         return false;
       } else {

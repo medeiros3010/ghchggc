@@ -21,7 +21,7 @@ export const DEFAULT_TCG_TEXT_BOXES: TextBoxConfig[] = [
     id: 'box-title',
     role: 'title',
     name: 'Nome da Carta',
-    content: 'Guardião do Vazio',
+    content: '',
     xPercent: 6.6,
     yPercent: 3.7,
     widthPercent: 87,
@@ -51,7 +51,7 @@ export const DEFAULT_TCG_TEXT_BOXES: TextBoxConfig[] = [
     id: 'box-type',
     role: 'type',
     name: 'Tipo / Subtipo',
-    content: 'An Elite Dragon of  breathtaking majesty',
+    content: '',
     xPercent: 6.8,
     yPercent: 72.4,
     widthPercent: 86.5,
@@ -115,7 +115,7 @@ export const DEFAULT_TCG_TEXT_BOXES: TextBoxConfig[] = [
     id: 'box-footer',
     role: 'footer',
     name: 'Rodapé / Numeração',
-    content: 'art @ Vicent Pompetti',
+    content: '',
     xPercent: 10.3,
     yPercent: 95,
     widthPercent: 80.1,
@@ -308,7 +308,7 @@ export const DEFAULT_SITE_TEXT_BOXES: TextBoxConfig[] = [
     id: 'box-title',
     role: 'title',
     name: 'Nome da Carta',
-    content: 'Troll Bridge',
+    content: '',
     xPercent: 7.9,
     yPercent: 83.3,
     widthPercent: 83.0,
@@ -338,7 +338,7 @@ export const DEFAULT_SITE_TEXT_BOXES: TextBoxConfig[] = [
     id: 'box-type',
     role: 'type',
     name: 'Tipo / Subtipo',
-    content: 'An Exceptional Site to traipse atop',
+    content: '',
     xPercent: 16.0,
     yPercent: 3.6,
     widthPercent: 63.0,
@@ -401,7 +401,7 @@ export const DEFAULT_SITE_TEXT_BOXES: TextBoxConfig[] = [
     id: 'box-footer',
     role: 'footer',
     name: 'Rodapé / Numeração',
-    content: 'art @ Vicent Pompetti',
+    content: '',
     xPercent: 8.0,
     yPercent: 93.0,
     widthPercent: 84.0,
@@ -434,76 +434,76 @@ export const DEFAULT_MINION_TEXT_BOXES: TextBoxConfig[] = DEFAULT_TCG_TEXT_BOXES
 export const DEFAULT_MAGIC_TEXT_BOXES: TextBoxConfig[] = [
   {
     ...DEFAULT_TCG_TEXT_BOXES[0],
-    content: 'Vórtice Arcano',
+    content: '',
   },
   {
     ...DEFAULT_TCG_TEXT_BOXES[1],
-    content: 'Ordinary Magic',
+    content: '',
   },
   {
     ...DEFAULT_TCG_TEXT_BOXES[2],
-    content: 'Conjura uma onda arcana pelo reino.',
+    content: '',
   },
   {
     ...DEFAULT_TCG_TEXT_BOXES[3],
-    content: 'art @ Vicent Pompetti',
+    content: '',
   },
 ];
 
 export const DEFAULT_AURA_TEXT_BOXES: TextBoxConfig[] = [
   {
     ...DEFAULT_TCG_TEXT_BOXES[0],
-    content: 'Santuário da Aurora',
+    content: '',
   },
   {
     ...DEFAULT_TCG_TEXT_BOXES[1],
-    content: 'Continuous Aura',
+    content: '',
   },
   {
     ...DEFAULT_TCG_TEXT_BOXES[2],
-    content: 'Enquanto esta aura persistir, aliados no local recebem bênção primordial.',
+    content: '',
   },
   {
     ...DEFAULT_TCG_TEXT_BOXES[3],
-    content: 'art @ Vicent Pompetti',
+    content: '',
   },
 ];
 
 export const DEFAULT_ARTIFACT_TEXT_BOXES: TextBoxConfig[] = [
   {
     ...DEFAULT_TCG_TEXT_BOXES[0],
-    content: 'Cálice Primordial',
+    content: '',
   },
   {
     ...DEFAULT_TCG_TEXT_BOXES[1],
-    content: 'Artifact • Relic',
+    content: '',
   },
   {
     ...DEFAULT_TCG_TEXT_BOXES[2],
-    content: 'Canalize a essência dos elementos ancestrais.',
+    content: '',
   },
   {
     ...DEFAULT_TCG_TEXT_BOXES[3],
-    content: 'art @ Vicent Pompetti',
+    content: '',
   },
 ];
 
 export const DEFAULT_AVATAR_TEXT_BOXES: TextBoxConfig[] = [
   {
     ...DEFAULT_TCG_TEXT_BOXES[0],
-    content: 'Arquimago Primordial',
+    content: '',
   },
   {
     ...DEFAULT_TCG_TEXT_BOXES[1],
-    content: 'Avatar',
+    content: '',
   },
   {
     ...DEFAULT_TCG_TEXT_BOXES[2],
-    content: 'Comanda as forças do reino e conjura seus lacaios ao campo de batalha.',
+    content: '',
   },
   {
     ...DEFAULT_TCG_TEXT_BOXES[3],
-    content: 'art @ Vicent Pompetti',
+    content: '',
   },
 ];
 
@@ -530,7 +530,8 @@ export function getDefaultTextBoxesForType(cardType?: import('../types/cardType'
       source = DEFAULT_TCG_TEXT_BOXES;
       break;
   }
-  // Sempre retorna uma cópia profunda para garantir isolamento e independência total de referência
-  return JSON.parse(JSON.stringify(source));
+  // Sempre retorna uma cópia profunda com conteúdo rigorosamente vazio para novas cartas
+  const cloned: TextBoxConfig[] = JSON.parse(JSON.stringify(source));
+  return cloned.map((box) => ({ ...box, content: '' }));
 }
 

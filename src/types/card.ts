@@ -172,6 +172,37 @@ export function findBoxByRole(boxes: TextBoxConfig[], role: TextBoxRole): TextBo
   }
 }
 
+/**
+ * Determina se uma caixa de texto é do tipo Regras/Descrição.
+ * O botão de Símbolos deve aparecer EXCLUSIVAMENTE em caixas com essa função.
+ */
+export function isRulesTextBox(box?: TextBoxConfig | null): boolean {
+  if (!box) return false;
+  // 1. Role explícito de regras
+  if (box.role === 'rules') return true;
+  // 2. Se possuir explicitamente outro role principal, não é regras
+  if (box.role === 'title' || box.role === 'type' || box.role === 'footer') return false;
+  
+  const idLower = (box.id || '').toLowerCase();
+  const nameLower = (box.name || '').toLowerCase();
+
+  // 3. Identificador padrão ou descritivo
+  if (idLower === 'box-description' || idLower.includes('rule') || idLower.includes('desc')) return true;
+
+  // 4. Fallback semântico por nome do rótulo
+  if (
+    nameLower.includes('regra') ||
+    nameLower.includes('descri') ||
+    nameLower.includes('efeito') ||
+    nameLower.includes('habilidade') ||
+    nameLower.includes('texto de regra')
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
 export interface TextBoxConfig {
   id: string;
   role?: TextBoxRole; // Função estável no layout da carta (title, type, rules, footer)

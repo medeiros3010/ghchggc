@@ -65,6 +65,8 @@ import {
   ChevronUp,
   Move,
 } from 'lucide-react';
+import { TextSymbolsMenu } from './TextSymbolsMenu';
+import { insertSymbolIntoInputElement } from '../utils/textSymbols';
 
 interface UserModeControlsProps {
   cardType?: import('../types/cardType').CardTypeId | null;
@@ -115,6 +117,10 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
   const [isSiteTypographyOpen, setIsSiteTypographyOpen] = useState(false);
   const [siteTypoTab, setSiteTypoTab] = useState<'name' | 'type'>('name');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const typeInputRef = useRef<HTMLInputElement>(null);
+  const rulesInputRef = useRef<HTMLTextAreaElement>(null);
+  const footerInputRef = useRef<HTMLInputElement>(null);
 
   // Acessores estáveis para os 4 campos principais da carta
   const titleBox = findBoxByRole(textBoxes, 'title');
@@ -499,13 +505,16 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
 
             {/* 1. Nome da Carta */}
             <div className="space-y-1.5 bg-[#302D27] p-3.5 rounded-lg border border-[#65543C]">
-              <label className="text-xs font-semibold text-[#E8DECA] flex items-center justify-between">
-                <span>Nome da Carta:</span>
-                <span className="text-[10px] font-normal text-[#B5A995]">
-                  {activeCardType === 'site' ? 'Primeiro segmento do título' : 'Título principal'}
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-[#E8DECA]">
+                  Nome da Carta:
+                </label>
+                <span className="text-[10px] font-normal text-[#B5A995] hidden sm:inline">
+                  {activeCardType === 'site' ? 'Primeiro segmento' : 'Título principal'}
                 </span>
-              </label>
+              </div>
               <input
+                ref={nameInputRef}
                 type="text"
                 value={cardName}
                 onChange={(e) => onUpdateTextBoxContent('title', e.target.value)}
@@ -516,13 +525,16 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
 
             {/* 2. Tipo / Subtipo */}
             <div className="space-y-1.5 bg-[#302D27] p-3.5 rounded-lg border border-[#65543C]">
-              <label className="text-xs font-semibold text-[#E8DECA] flex items-center justify-between">
-                <span>Tipo / Subtipo:</span>
-                <span className="text-[10px] font-normal text-[#B5A995]">
-                  {activeCardType === 'site' ? 'Segundo segmento do título' : 'Linhagem e classificação'}
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-[#E8DECA]">
+                  Tipo / Subtipo:
+                </label>
+                <span className="text-[10px] font-normal text-[#B5A995] hidden sm:inline">
+                  {activeCardType === 'site' ? 'Segundo segmento' : 'Linhagem'}
                 </span>
-              </label>
+              </div>
               <input
+                ref={typeInputRef}
                 type="text"
                 value={cardType}
                 onChange={(e) => onUpdateTextBoxContent('type', e.target.value)}
@@ -882,8 +894,22 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
                   <span>Regras / Descrição:</span>
                 </label>
 
-                {/* Controles de Alinhamento e Centralização exclusivos para Site */}
-                {activeCardType === 'site' && (
+                {/* Toolbar de Formatação e Símbolos (inspirada no Sorcerer's Spellbook) */}
+                <div className="flex items-center gap-1.5">
+                  <TextSymbolsMenu
+                    onInsertSymbol={(code) => {
+                      insertSymbolIntoInputElement(
+                        rulesInputRef.current,
+                        code,
+                        cardRules,
+                        (val) => onUpdateTextBoxContent('rules', val)
+                      );
+                    }}
+                    size="xs"
+                    buttonLabel="Símbolos"
+                  />
+
+                  {/* Controles de Alinhamento */}
                   <div className="flex items-center gap-1 bg-[#24221E] p-1 rounded border border-[#453B2D]">
                     <button
                       type="button"
@@ -922,10 +948,11 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
                       <AlignRight className="w-3.5 h-3.5" />
                     </button>
                   </div>
-                )}
+                </div>
               </div>
 
               <textarea
+                ref={rulesInputRef}
                 rows={5}
                 value={cardRules}
                 onChange={(e) => onUpdateTextBoxContent('rules', e.target.value)}
@@ -942,11 +969,14 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
 
             {/* 4. Rodapé / Numeração */}
             <div className="space-y-1.5 bg-[#302D27] p-3.5 rounded-lg border border-[#65543C]">
-              <label className="text-xs font-semibold text-[#E8DECA] flex items-center justify-between">
-                <span>Rodapé / Numeração:</span>
-                <span className="text-[10px] font-normal text-[#B5A995]">Créditos de arte ou numeração</span>
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-[#E8DECA]">
+                  Rodapé / Numeração:
+                </label>
+                <span className="text-[10px] font-normal text-[#B5A995] hidden sm:inline">Créditos de arte</span>
+              </div>
               <input
+                ref={footerInputRef}
                 type="text"
                 value={cardFooter}
                 onChange={(e) => onUpdateTextBoxContent('footer', e.target.value)}
