@@ -69,6 +69,7 @@ import {
 } from 'lucide-react';
 import { TextSymbolsMenu } from './TextSymbolsMenu';
 import { insertSymbolIntoInputElement } from '../utils/textSymbols';
+import { TextBoxPositionControl } from './TextBoxPositionControl';
 
 interface UserModeControlsProps {
   cardType?: import('../types/cardType').CardTypeId | null;
@@ -129,6 +130,13 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
   const typeBox = findBoxByRole(textBoxes, 'type');
   const rulesBox = findBoxByRole(textBoxes, 'rules');
   const footerBox = findBoxByRole(textBoxes, 'footer');
+  const otherBoxes = textBoxes.filter(
+    (b) =>
+      b.id !== titleBox?.id &&
+      b.id !== typeBox?.id &&
+      b.id !== rulesBox?.id &&
+      b.id !== footerBox?.id
+  );
 
   const cardName = titleBox?.content ?? '';
   const cardType = typeBox?.content ?? '';
@@ -523,6 +531,15 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
                 placeholder={activeCardType === 'site' ? 'Ex: Ancient Ruins' : 'Ex: Guardião do Vazio'}
                 className="w-full px-3 py-2 text-sm bg-[#24221E] border border-[#453B2D] focus:border-[#C5A675] rounded text-[#E8DECA] placeholder-[#8F8270] focus:outline-none transition-all font-serif"
               />
+              {titleBox && onUpdateTextBox && (
+                <TextBoxPositionControl
+                  box={titleBox}
+                  cardType={activeCardType}
+                  onUpdateTextBox={onUpdateTextBox}
+                  label="Posição do Nome"
+                  sublabel={activeCardType === 'site' ? 'Título Composto' : undefined}
+                />
+              )}
             </div>
 
             {/* 2. Tipo / Subtipo */}
@@ -553,6 +570,15 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
                 }
                 className="w-full px-3 py-2 text-sm bg-[#24221E] border border-[#453B2D] focus:border-[#C5A675] rounded text-[#E8DECA] placeholder-[#8F8270] focus:outline-none transition-all font-serif"
               />
+              {typeBox && onUpdateTextBox && (
+                <TextBoxPositionControl
+                  box={typeBox}
+                  cardType={activeCardType}
+                  onUpdateTextBox={onUpdateTextBox}
+                  label="Posição do Tipo/Subtipo"
+                  sublabel={activeCardType === 'site' ? 'Integrado ao título' : undefined}
+                />
+              )}
             </div>
 
             {/* Controles de Tipografia Independente para Site */}
@@ -967,6 +993,14 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
                 }
                 className="w-full px-3 py-2 text-xs leading-relaxed bg-[#24221E] border border-[#453B2D] focus:border-[#C5A675] rounded text-[#E8DECA] placeholder-[#8F8270] focus:outline-none transition-all resize-y font-serif"
               />
+              {rulesBox && onUpdateTextBox && (
+                <TextBoxPositionControl
+                  box={rulesBox}
+                  cardType={activeCardType}
+                  onUpdateTextBox={onUpdateTextBox}
+                  label="Posição das Regras"
+                />
+              )}
             </div>
 
             {/* 4. Rodapé / Numeração */}
@@ -985,7 +1019,41 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
                 placeholder="Ex: art @ Vicent Pompetti • 001/100"
                 className="w-full px-3 py-2 text-xs bg-[#24221E] border border-[#453B2D] focus:border-[#C5A675] rounded text-[#E8DECA] placeholder-[#8F8270] focus:outline-none transition-all italic font-serif"
               />
+              {footerBox && onUpdateTextBox && (
+                <TextBoxPositionControl
+                  box={footerBox}
+                  cardType={activeCardType}
+                  onUpdateTextBox={onUpdateTextBox}
+                  label="Posição do Rodapé"
+                />
+              )}
             </div>
+
+            {/* Caixas de Texto Adicionais / Personalizadas */}
+            {otherBoxes.map((customBox) => (
+              <div key={customBox.id} className="space-y-1.5 bg-[#302D27] p-3.5 rounded-lg border border-[#65543C]">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-[#E8DECA]">
+                    {customBox.name}:
+                  </label>
+                </div>
+                <input
+                  type="text"
+                  value={customBox.content}
+                  onChange={(e) => onUpdateTextBox?.(customBox.id, { content: e.target.value })}
+                  placeholder="Digite o texto..."
+                  className="w-full px-3 py-2 text-xs bg-[#24221E] border border-[#453B2D] focus:border-[#C5A675] rounded text-[#E8DECA] placeholder-[#8F8270] focus:outline-none transition-all font-serif"
+                />
+                {onUpdateTextBox && (
+                  <TextBoxPositionControl
+                    box={customBox}
+                    cardType={activeCardType}
+                    onUpdateTextBox={onUpdateTextBox}
+                    label={`Posição (${customBox.name})`}
+                  />
+                )}
+              </div>
+            ))}
 
             {/* Botão de Avanço Rápido */}
             <div className="pt-2">
@@ -1411,13 +1479,30 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
                   <div className="space-y-1">
                     <div className="flex items-center justify-between text-[11px]">
                       <span className="text-[#B5A995]">Posição X (Horizontal):</span>
-                      <span className="font-mono text-[#E8DECA]">{siteThresholdX.toFixed(1)}%</span>
+                      <div className="flex items-center gap-1 font-mono">
+                        <input
+                          type="number"
+                          min="0"
+                          max="98"
+                          step="0.1"
+                          value={Number(siteThresholdX.toFixed(1))}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            if (!isNaN(val)) {
+                              onUpdateSorceryThreshold({ xPercent: Math.max(0, Math.min(98, Math.round(val * 10) / 10)) });
+                            }
+                          }}
+                          className="w-13 px-1 py-0.5 text-right bg-[#302D27] border border-[#453B2D] focus:border-[#C5A675] rounded text-[11px] text-[#E8DECA] font-mono focus:outline-none"
+                        />
+                        <span className="text-[#8F8270] text-[10px]">%</span>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => handleStepSiteThresholdPos('x', -0.5)}
                         className="w-6 h-6 flex items-center justify-center bg-[#302D27] hover:bg-[#34352D] text-[#E8DECA] border border-[#453B2D] rounded text-xs cursor-pointer"
+                        title="Recuar 0.5% (Horizontal)"
                       >
                         -
                       </button>
@@ -1425,7 +1510,7 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
                         type="range"
                         min="0"
                         max="98"
-                        step="0.5"
+                        step="0.1"
                         value={siteThresholdX}
                         onChange={(e) => onUpdateSorceryThreshold({ xPercent: parseFloat(e.target.value) })}
                         className="flex-1 accent-[#C5A675] cursor-pointer"
@@ -1434,6 +1519,7 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
                         type="button"
                         onClick={() => handleStepSiteThresholdPos('x', 0.5)}
                         className="w-6 h-6 flex items-center justify-center bg-[#302D27] hover:bg-[#34352D] text-[#E8DECA] border border-[#453B2D] rounded text-xs cursor-pointer"
+                        title="Avançar 0.5% (Horizontal)"
                       >
                         +
                       </button>
@@ -1444,13 +1530,30 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
                   <div className="space-y-1">
                     <div className="flex items-center justify-between text-[11px]">
                       <span className="text-[#B5A995]">Posição Y (Vertical):</span>
-                      <span className="font-mono text-[#E8DECA]">{siteThresholdY.toFixed(1)}%</span>
+                      <div className="flex items-center gap-1 font-mono">
+                        <input
+                          type="number"
+                          min="0"
+                          max="98"
+                          step="0.1"
+                          value={Number(siteThresholdY.toFixed(1))}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            if (!isNaN(val)) {
+                              onUpdateSorceryThreshold({ yPercent: Math.max(0, Math.min(98, Math.round(val * 10) / 10)) });
+                            }
+                          }}
+                          className="w-13 px-1 py-0.5 text-right bg-[#302D27] border border-[#453B2D] focus:border-[#C5A675] rounded text-[11px] text-[#E8DECA] font-mono focus:outline-none"
+                        />
+                        <span className="text-[#8F8270] text-[10px]">%</span>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => handleStepSiteThresholdPos('y', -0.5)}
                         className="w-6 h-6 flex items-center justify-center bg-[#302D27] hover:bg-[#34352D] text-[#E8DECA] border border-[#453B2D] rounded text-xs cursor-pointer"
+                        title="Recuar 0.5% (Vertical)"
                       >
                         -
                       </button>
@@ -1458,7 +1561,7 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
                         type="range"
                         min="0"
                         max="98"
-                        step="0.5"
+                        step="0.1"
                         value={siteThresholdY}
                         onChange={(e) => onUpdateSorceryThreshold({ yPercent: parseFloat(e.target.value) })}
                         className="flex-1 accent-[#C5A675] cursor-pointer"
@@ -1467,6 +1570,7 @@ export const UserModeControls: React.FC<UserModeControlsProps> = ({
                         type="button"
                         onClick={() => handleStepSiteThresholdPos('y', 0.5)}
                         className="w-6 h-6 flex items-center justify-center bg-[#302D27] hover:bg-[#34352D] text-[#E8DECA] border border-[#453B2D] rounded text-xs cursor-pointer"
+                        title="Avançar 0.5% (Vertical)"
                       >
                         +
                       </button>

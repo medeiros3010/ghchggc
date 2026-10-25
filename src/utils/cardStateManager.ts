@@ -591,8 +591,11 @@ export function createNewCardState(
     cardType
   );
 
-  // 3. Limpa conteúdo das caixas de texto preservando todas as posições, dimensões, fontes e espaçamentos
+  // 3. Limpa conteúdo das caixas de texto preservando fontes, estilos e restaurando posições padrão originais para novas cartas
   let cleanTextBoxes: TextBoxConfig[] = base.textBoxes.map((box) => {
+    const defaultBox = defaultBase.textBoxes.find(
+      (b) => b.id === box.id || (box.role && b.role === box.role)
+    );
     const isTitleOrType =
       box.role === 'title' ||
       box.role === 'type' ||
@@ -601,6 +604,8 @@ export function createNewCardState(
     return {
       ...box,
       content: '', // Sempre completamente vazio para novas cartas
+      xPercent: defaultBox ? defaultBox.xPercent : box.xPercent,
+      yPercent: defaultBox ? defaultBox.yPercent : box.yPercent,
       fontFamily: isTitleOrType && (box.fontFamily === 'morpheus' || box.fontFamily === 'palatino-italic' || !box.fontFamily)
         ? 'fantaisie-artistique'
         : box.fontFamily,

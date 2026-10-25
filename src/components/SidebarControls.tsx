@@ -622,47 +622,141 @@ export const SidebarControls: React.FC<SidebarControlsProps> = ({
                   </div>
 
                   {/* Eixo X */}
-                  <div>
-                    <div className="flex justify-between text-[11px] text-slate-600 mb-1 font-mono">
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-center text-[11px] text-slate-600 mb-1 font-mono">
                       <span>Posição X (Horizontal):</span>
-                      <span className="font-semibold">{selectedBox.xPercent}%</span>
+                      <div className="flex items-center gap-1 font-mono">
+                        <input
+                          type="number"
+                          min="0"
+                          max="99"
+                          step="0.1"
+                          value={Number(selectedBox.xPercent.toFixed(1))}
+                          disabled={selectedBox.isLocked}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            if (!isNaN(val)) {
+                              onUpdateTextBox(selectedBox.id, {
+                                xPercent: Math.max(0, Math.min(99, Math.round(val * 10) / 10)),
+                              });
+                            }
+                          }}
+                          className="w-13 px-1 py-0.5 text-right bg-white border border-slate-300 rounded text-[11px] font-bold text-slate-700 disabled:opacity-40"
+                        />
+                        <span className="text-slate-400 text-[10px]">%</span>
+                      </div>
                     </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="90"
-                      step="0.5"
-                      value={selectedBox.xPercent}
-                      disabled={selectedBox.isLocked}
-                      onChange={(e) =>
-                        onUpdateTextBox(selectedBox.id, {
-                          xPercent: parseFloat(e.target.value),
-                        })
-                      }
-                      className="w-full accent-blue-600 disabled:opacity-40"
-                    />
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={selectedBox.isLocked}
+                        onClick={() =>
+                          onUpdateTextBox(selectedBox.id, {
+                            xPercent: Math.max(0, Math.min(99, Math.round((selectedBox.xPercent - 0.5) * 10) / 10)),
+                          })
+                        }
+                        className="w-6 h-6 flex items-center justify-center bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded text-xs cursor-pointer disabled:opacity-40"
+                        title="Recuar 0.5% (Horizontal)"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="range"
+                        min="0"
+                        max="98"
+                        step="0.1"
+                        value={selectedBox.xPercent}
+                        disabled={selectedBox.isLocked}
+                        onChange={(e) =>
+                          onUpdateTextBox(selectedBox.id, {
+                            xPercent: parseFloat(e.target.value),
+                          })
+                        }
+                        className="flex-1 accent-blue-600 disabled:opacity-40 cursor-pointer"
+                      />
+                      <button
+                        type="button"
+                        disabled={selectedBox.isLocked}
+                        onClick={() =>
+                          onUpdateTextBox(selectedBox.id, {
+                            xPercent: Math.max(0, Math.min(99, Math.round((selectedBox.xPercent + 0.5) * 10) / 10)),
+                          })
+                        }
+                        className="w-6 h-6 flex items-center justify-center bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded text-xs cursor-pointer disabled:opacity-40"
+                        title="Avançar 0.5% (Horizontal)"
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
 
                   {/* Eixo Y */}
-                  <div>
-                    <div className="flex justify-between text-[11px] text-slate-600 mb-1 font-mono">
+                  <div className="space-y-1">
+                    <div className="flex justify-between items-center text-[11px] text-slate-600 mb-1 font-mono">
                       <span>Posição Y (Vertical):</span>
-                      <span className="font-semibold">{selectedBox.yPercent}%</span>
+                      <div className="flex items-center gap-1 font-mono">
+                        <input
+                          type="number"
+                          min="0"
+                          max="99"
+                          step="0.1"
+                          value={Number(selectedBox.yPercent.toFixed(1))}
+                          disabled={selectedBox.isLocked}
+                          onChange={(e) => {
+                            const val = parseFloat(e.target.value);
+                            if (!isNaN(val)) {
+                              onUpdateTextBox(selectedBox.id, {
+                                yPercent: Math.max(0, Math.min(99, Math.round(val * 10) / 10)),
+                              });
+                            }
+                          }}
+                          className="w-13 px-1 py-0.5 text-right bg-white border border-slate-300 rounded text-[11px] font-bold text-slate-700 disabled:opacity-40"
+                        />
+                        <span className="text-slate-400 text-[10px]">%</span>
+                      </div>
                     </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="95"
-                      step="0.5"
-                      value={selectedBox.yPercent}
-                      disabled={selectedBox.isLocked}
-                      onChange={(e) =>
-                        onUpdateTextBox(selectedBox.id, {
-                          yPercent: parseFloat(e.target.value),
-                        })
-                      }
-                      className="w-full accent-blue-600 disabled:opacity-40"
-                    />
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={selectedBox.isLocked}
+                        onClick={() =>
+                          onUpdateTextBox(selectedBox.id, {
+                            yPercent: Math.max(0, Math.min(99, Math.round((selectedBox.yPercent - 0.5) * 10) / 10)),
+                          })
+                        }
+                        className="w-6 h-6 flex items-center justify-center bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded text-xs cursor-pointer disabled:opacity-40"
+                        title="Recuar 0.5% (Vertical)"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="range"
+                        min="0"
+                        max="98"
+                        step="0.1"
+                        value={selectedBox.yPercent}
+                        disabled={selectedBox.isLocked}
+                        onChange={(e) =>
+                          onUpdateTextBox(selectedBox.id, {
+                            yPercent: parseFloat(e.target.value),
+                          })
+                        }
+                        className="flex-1 accent-blue-600 disabled:opacity-40 cursor-pointer"
+                      />
+                      <button
+                        type="button"
+                        disabled={selectedBox.isLocked}
+                        onClick={() =>
+                          onUpdateTextBox(selectedBox.id, {
+                            yPercent: Math.max(0, Math.min(99, Math.round((selectedBox.yPercent + 0.5) * 10) / 10)),
+                          })
+                        }
+                        className="w-6 h-6 flex items-center justify-center bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded text-xs cursor-pointer disabled:opacity-40"
+                        title="Avançar 0.5% (Vertical)"
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
 
                   {/* Largura % */}
